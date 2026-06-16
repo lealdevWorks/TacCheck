@@ -1,5 +1,6 @@
 import { calculateAnalysis } from "../core/analysis.js";
 import { pointForSpeed } from "../core/geometry.js";
+import { getCalculationReadiness } from "../core/readiness.js";
 import { formatNumber, parseNumber } from "../core/tolerance.js";
 import { ImageViewer } from "./viewer.js";
 
@@ -122,6 +123,8 @@ function bindEvents() {
   els.clearMarksButton.addEventListener("click", clearMarks);
   els.markedImageButton.addEventListener("click", downloadMarkedImage);
   els.canvas.addEventListener("click", handleCanvasClick);
+  els.toleranceInput.addEventListener("input", updateUi);
+  els.maxSpeedInput.addEventListener("input", updateUi);
 }
 
 function handleFile(event) {
@@ -227,6 +230,18 @@ function resetMaxSpeedInput() {
 
 function validateBeforeCalculation(maxSpeed) {
   if (maxSpeed <= 0) throw new Error("Informe a velocidade maxima real do ensaio.");
+}
+
+function getUiReadiness() {
+  return getCalculationReadiness({
+    imageLoaded: Boolean(state.image),
+    line40Points: state.marks.line40,
+    line60Points: state.marks.line60,
+    registerTopPoints: state.marks.registerTop,
+    maxSpeed: els.maxSpeedInput.value,
+    tolerance: els.toleranceInput.value,
+    maxSpeedRequired: false
+  });
 }
 
 function drawScene(ctx, viewport, rect) {
@@ -341,15 +356,17 @@ function drawSpeedLine(ctx, calibration, speed, color, label, dashed, labelOffse
 }
 
 function updateUi() {
+  const readiness = getUiReadiness();
   els.imageStepStatus.textContent = state.image ? "carregada" : "pendente";
   els.scaleStepStatus.textContent = `${state.marks.line40.length}/2 40 | ${state.marks.line60.length}/2 60`;
   els.registerStepStatus.textContent = state.marks.registerTop.length
     ? `${state.marks.registerTop.length}/3 topo`
     : "pendente";
   els.resultStepStatus.textContent = state.lastAnalysis ? "calculado" : "aguardando";
+  els.calculateButton.disabled = !readiness.canCalculate;
   updateStepClasses();
   updateModeText();
-  updateQuality();
+  updateQuality(readiness);
 }
 
 function updateStepClasses() {
@@ -384,13 +401,26 @@ function updateModeText() {
   els.modeText.textContent = text;
 }
 
-function updateQuality() {
+function updateQuality(readiness = getUiReadiness()) {
   if (state.lastAnalysis) {
     const cal = state.lastAnalysis.calibration;
-    els.qualityText.textContent = `${cal.quality} | ${formatNumber(cal.pixelsPerKm, 2)} px/km | ${formatNumber(cal.angularDifference, 2)} graus`;
+    els.qualityText.textContent = `calculado | ${cal.quality} | ${formatNumber(cal.pixelsPerKm, 2)} px/km`;
     return;
   }
-  els.qualityText.textContent = "aguardando escala";
+  if (!readiness.hasScale) {
+    els.qualityText.textContent = "aguardando escala";
+    return;
+  }
+  if (!readiness.hasRegister) {
+    els.qualityText.textContent = "escala marcada | aguardando topo";
+    return;
+  }
+  if (!readiness.hasTolerance) {
+    els.qualityText.textContent = "topo marcado | aguardando tolerancia";
+    return;
+  }
+  const precision = state.marks.registerTop.length === 1 ? "precisao basica" : "precisao melhor";
+  els.qualityText.textContent = `pronto para calcular | ${precision}`;
 }
 
 function updateResult(analysis) {
