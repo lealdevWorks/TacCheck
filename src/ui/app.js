@@ -178,14 +178,17 @@ function handleCanvasClick(event) {
   viewer.draw();
 }
 
-function calculate() {
+function calculate(options = {}) {
+  const config = options instanceof Event ? {} : options;
   try {
-    validateBeforeCalculation();
+    validateBeforeSpeedRequest();
+    const maxSpeed = config.maxSpeed ?? requestMaxSpeed();
+    validateBeforeCalculation(maxSpeed);
     const analysis = calculateAnalysis({
       line40Points: state.marks.line40,
       line60Points: state.marks.line60,
       registerTopPoints: state.marks.registerTop,
-      maxSpeed: parseNumber(els.maxSpeedInput.value),
+      maxSpeed,
       tolerance: parseNumber(els.toleranceInput.value, 4),
       failCriterion: els.criterionInput.value
     });
@@ -194,6 +197,7 @@ function calculate() {
     updateResult(analysis);
     setStatus("Calculo concluido com a linha de leitura do topo do registro.");
     els.lastCalcText.textContent = `Ultimo calculo: ${new Date().toLocaleString("pt-BR")}`;
+    resetMaxSpeedInput();
     viewer.draw();
   } catch (error) {
     setStatus(error.message);
@@ -201,12 +205,28 @@ function calculate() {
   updateUi();
 }
 
-function validateBeforeCalculation() {
+function validateBeforeSpeedRequest() {
   if (!state.image) throw new Error("Carregue uma imagem.");
   if (state.marks.line40.length < 2) throw new Error("Marque pelo menos 2 pontos na linha 40 km/h.");
   if (state.marks.line60.length < 2) throw new Error("Marque pelo menos 2 pontos na linha 60 km/h.");
   if (state.marks.registerTop.length < 1) throw new Error("Marque pelo menos 1 ponto no topo do registro.");
-  if (parseNumber(els.maxSpeedInput.value) <= 0) throw new Error("Informe a velocidade maxima real do ensaio.");
+}
+
+function requestMaxSpeed() {
+  const currentValue = els.maxSpeedInput.value.trim();
+  const answer = window.prompt("Informe a velocidade maxima atingida no ensaio (km/h):", currentValue);
+  if (answer === null) throw new Error("Calculo cancelado. Informe a velocidade maxima atingida.");
+  const maxSpeed = parseNumber(answer);
+  els.maxSpeedInput.value = formatNumber(maxSpeed);
+  return maxSpeed;
+}
+
+function resetMaxSpeedInput() {
+  els.maxSpeedInput.value = "";
+}
+
+function validateBeforeCalculation(maxSpeed) {
+  if (maxSpeed <= 0) throw new Error("Informe a velocidade maxima real do ensaio.");
 }
 
 function drawScene(ctx, viewport, rect) {
@@ -355,11 +375,11 @@ function updateStepClasses() {
 
 function updateModeText() {
   const texts = {
-    line40: ["Modo marcacao: linha 40 km/h", "Clique em 2 pontos sobre a linha verde de 40 km/h. Um 3o ponto e aceito para melhorar a reta."],
-    line60: ["Modo marcacao: linha 60 km/h", "Clique em 2 pontos sobre a linha azul de 60 km/h. O eixo de calculo sera 40 -> 60."],
-    registerTop: ["Modo marcacao: topo do registro", "Clique no topo do traco de velocidade. Use 1 ponto no modo simples, ou 2 a 3 pontos para calcular uma linha media de leitura."]
+    line40: ["Marcar 40 km/h", "Clique em 2 pontos na linha 40. Um 3o ponto melhora a reta."],
+    line60: ["Marcar 60 km/h", "Clique em 2 pontos na linha 60. A escala usa 40 -> 60."],
+    registerTop: ["Marcar topo", "Clique no topo do registro. Use 1 ponto, ou 2 a 3 para media."]
   };
-  const [title, text] = texts[state.mode] || ["Como marcar", "Carregue a imagem e use os botoes de marcacao. Marque 40, 60 e o topo do registro."];
+  const [title, text] = texts[state.mode] || ["Como marcar", "Carregue a imagem. Marque 40, 60 e o topo do registro."];
   els.modeTitle.textContent = title;
   els.modeText.textContent = text;
 }
@@ -573,7 +593,7 @@ function loadDemo() {
     state.marks.line40 = [{ x: 80, y: 620 }, { x: 1120, y: 620 }];
     state.marks.line60 = [{ x: 80, y: 220 }, { x: 1120, y: 220 }];
     state.marks.registerTop = [{ x: 350, y: 465.2 }, { x: 605, y: 465.2 }, { x: 860, y: 465.2 }];
-    calculate();
+    calculate({ maxSpeed: 52.101 });
   };
   image.src = canvas.toDataURL("image/png");
 }

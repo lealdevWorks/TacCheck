@@ -44,7 +44,7 @@
         <label>
           <span>Velocidade máxima do ensaio</span>
           <div class="input-addon">
-            <input id="maxSpeedInput" value="52,101" inputmode="decimal">
+            <input id="maxSpeedInput" placeholder="Informe" inputmode="decimal">
             <b>km/h</b>
           </div>
         </label>
@@ -70,6 +70,7 @@
 
       <main class="workbench">
         <aside class="left-panel">
+          <div class="left-panel-content">
           <nav class="steps" aria-label="Etapas">
             <button class="step is-active" data-step="image">
               <strong>1</strong>
@@ -98,6 +99,7 @@
             <p><i class="line dash"></i>Limites</p>
             <p><i class="line yellow"></i>Linha de leitura</p>
           </section>
+          </div>
         </aside>
 
         <section class="canvas-panel">
@@ -111,7 +113,7 @@
             <button id="toggleMarksButton" title="Mostrar ou ocultar marcações">Marcas</button>
             <button id="undoButton" title="Desfazer última marcação">Desfazer</button>
           </div>
-          <div id="canvasWrap" class="canvas-wrap">
+          <div id="canvasWrap" class="canvas-wrap image-viewer">
             <canvas id="imageCanvas"></canvas>
             <div id="emptyState" class="empty-state">
               <strong>Carregue uma imagem do disco</strong>
@@ -127,6 +129,7 @@
         </section>
 
         <aside class="right-panel">
+          <div class="right-panel-content">
           <section class="card instructions">
             <h2 id="modeTitle">Como marcar</h2>
             <p id="modeText">Carregue a imagem e use os botões de marcação. Cada linha precisa de pelo menos 2 pontos.</p>
@@ -153,6 +156,7 @@
           <section class="card actions-card">
             <button id="markedImageButton" class="button button-light">Gerar imagem marcada</button>
           </section>
+          </div>
         </aside>
       </main>
 

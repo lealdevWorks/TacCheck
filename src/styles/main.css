@@ -27,6 +27,16 @@ body {
   background: var(--bg);
 }
 
+body {
+  min-height: 100vh;
+}
+
+#app,
+.app {
+  height: 100dvh;
+  overflow: hidden;
+}
+
 button,
 input,
 select {
@@ -38,11 +48,12 @@ button {
 }
 
 .app-shell {
+  height: 100dvh;
   display: grid;
   grid-template-rows: auto auto 1fr auto;
-  gap: 12px;
-  height: 100%;
-  padding: 14px;
+  gap: 8px;
+  overflow: hidden;
+  padding: 10px;
 }
 
 .app-header,
@@ -59,34 +70,34 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 76px;
-  padding: 12px 18px;
+  min-height: 58px;
+  padding: 8px 14px;
   border-radius: 8px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
 }
 
 .brand h1 {
   margin: 0;
-  font-size: 30px;
+  font-size: 24px;
   line-height: 1;
   letter-spacing: 0;
 }
 
 .brand p {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .brand-mark {
   position: relative;
-  width: 54px;
-  height: 54px;
+  width: 42px;
+  height: 42px;
   border: 2px solid #4f5d6e;
   border-radius: 50%;
   background:
@@ -97,19 +108,19 @@ button {
 .brand-mark::before {
   content: "";
   position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 9px;
+  left: 7px;
+  right: 7px;
+  bottom: 7px;
   height: 2px;
   background: #4f5d6e;
 }
 
 .brand-mark span {
   position: absolute;
-  left: 25px;
-  top: 14px;
+  left: 19px;
+  top: 11px;
   width: 2px;
-  height: 18px;
+  height: 14px;
   transform: rotate(42deg);
   transform-origin: bottom;
   background: #111827;
@@ -120,14 +131,14 @@ button {
 .tool-strip,
 .actions-card {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .button {
-  min-height: 40px;
+  min-height: 38px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 0 14px;
+  padding: 0 12px;
   color: #0f172a;
   background: #fff;
   font-weight: 600;
@@ -155,38 +166,40 @@ button {
 
 .exam-bar {
   display: grid;
-  grid-template-columns: 150px 170px 150px 250px 180px 220px minmax(180px, 1fr);
-  gap: 14px;
+  grid-template-columns: 105px 135px 130px 190px 145px 190px minmax(150px, 1fr);
+  gap: 8px;
   align-items: end;
-  padding: 14px 18px;
+  padding: 10px 12px;
   border-radius: 8px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 label span {
   display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
+  margin-bottom: 4px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 input,
 select {
   width: 100%;
-  height: 40px;
+  height: 38px;
   border: 1px solid #cbd5e1;
   border-radius: 5px;
-  padding: 0 12px;
+  padding: 0 10px;
   color: #111827;
   background: #fff;
 }
 
 .input-addon {
   display: grid;
-  grid-template-columns: 1fr 64px;
+  grid-template-columns: 1fr 54px;
 }
 
 .input-addon.short {
-  grid-template-columns: 1fr 64px;
+  grid-template-columns: 1fr 54px;
 }
 
 .input-addon input {
@@ -196,7 +209,7 @@ select {
 .input-addon b {
   display: grid;
   place-items: center;
-  height: 40px;
+  height: 38px;
   border: 1px solid #cbd5e1;
   border-left: 0;
   border-radius: 0 5px 5px 0;
@@ -205,40 +218,48 @@ select {
 }
 
 .workbench {
-  display: grid;
-  grid-template-columns: 250px minmax(420px, 1fr) 400px;
-  gap: 12px;
   min-height: 0;
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr) 390px;
+  gap: 12px;
+  overflow: hidden;
 }
 
 .left-panel,
 .right-panel,
 .canvas-panel {
   min-height: 0;
+  overflow: hidden;
   border-radius: 8px;
 }
 
 .left-panel {
-  display: grid;
-  grid-template-rows: auto 1fr;
+  display: block;
   overflow: hidden;
 }
 
+.left-panel-content,
+.right-panel-content {
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
 .steps {
-  padding: 14px;
+  padding: 10px;
   border-bottom: 1px solid var(--line);
 }
 
 .step {
   display: grid;
-  grid-template-columns: 42px 1fr;
-  gap: 10px;
+  grid-template-columns: 34px 1fr;
+  gap: 8px;
   align-items: center;
   width: 100%;
-  min-height: 70px;
+  min-height: 52px;
   border: 0;
   border-radius: 8px;
-  padding: 10px;
+  padding: 7px;
   text-align: left;
   background: transparent;
 }
@@ -246,8 +267,8 @@ select {
 .step strong {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   color: #fff;
   background: #94a3b8;
@@ -259,7 +280,7 @@ select {
 
 .step small {
   display: block;
-  margin-top: 4px;
+  margin-top: 2px;
   color: var(--muted);
   font-weight: 500;
 }
@@ -274,25 +295,25 @@ select {
 }
 
 .legend {
-  padding: 16px 20px;
+  padding: 12px 14px;
 }
 
 .legend h2,
 .card h2 {
-  margin: 0 0 14px;
-  font-size: 18px;
+  margin: 0 0 10px;
+  font-size: 16px;
 }
 
 .legend p {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 16px 0;
+  gap: 10px;
+  margin: 10px 0;
   color: #1f2937;
 }
 
 .line {
-  width: 42px;
+  width: 34px;
   height: 0;
   border-top: 3px solid currentColor;
 }
@@ -309,26 +330,24 @@ select {
 
 .canvas-panel {
   display: grid;
-  grid-template-rows: 1fr auto;
-  position: relative;
+  grid-template-rows: auto 1fr auto;
+  min-height: 0;
   overflow: hidden;
 }
 
 .tool-strip {
-  position: absolute;
   z-index: 3;
-  left: 18px;
-  top: 18px;
-  padding: 8px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: var(--shadow);
+  align-items: center;
+  min-height: 42px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+  overflow-x: auto;
 }
 
 .tool-strip button {
   min-width: 40px;
-  min-height: 34px;
+  min-height: 30px;
   border: 0;
   border-radius: 5px;
   color: #1f2937;
@@ -339,7 +358,8 @@ select {
   background: #eef2f7;
 }
 
-.canvas-wrap {
+.canvas-wrap,
+.image-viewer {
   position: relative;
   min-height: 0;
   overflow: hidden;
@@ -372,36 +392,41 @@ select {
 
 .empty-state strong {
   color: var(--text);
-  font-size: 21px;
+  font-size: 19px;
 }
 
 .mark-toolbar {
   align-items: center;
-  min-height: 64px;
-  padding: 10px 12px;
+  min-height: 50px;
+  padding: 6px 8px;
   border-top: 1px solid var(--line);
   background: #fff;
+  overflow-x: auto;
 }
 
 .right-panel {
+  padding: 8px;
+  overflow: hidden;
+}
+
+.right-panel-content {
   display: grid;
-  grid-template-rows: auto auto auto 1fr;
-  gap: 12px;
-  padding: 12px;
-  overflow: auto;
+  grid-auto-rows: max-content;
+  gap: 8px;
 }
 
 .card {
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 14px;
+  padding: 10px;
   background: #fff;
 }
 
 .instructions p {
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   color: #344054;
-  line-height: 1.4;
+  font-size: 13px;
+  line-height: 1.32;
 }
 
 .quality-box {
@@ -409,9 +434,10 @@ select {
   justify-content: space-between;
   gap: 10px;
   border-radius: 6px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   background: #f8fafc;
   color: var(--muted);
+  font-size: 13px;
 }
 
 .quality-box strong {
@@ -419,15 +445,16 @@ select {
 }
 
 .result-card dl {
-  margin: 0 0 14px;
+  margin: 0 0 10px;
 }
 
 .result-card dl div {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding: 9px 0;
+  padding: 6px 0;
   border-bottom: 1px solid #edf1f7;
+  font-size: 13px;
 }
 
 .result-card dt {
@@ -442,11 +469,11 @@ select {
 .status-badge {
   display: grid;
   place-items: center;
-  min-height: 44px;
+  min-height: 36px;
   border-radius: 999px;
   color: #fff;
   background: var(--red);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 900;
 }
 
@@ -456,13 +483,14 @@ select {
 
 .status-badge.muted {
   background: #64748b;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .reason {
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   color: #344054;
   text-align: center;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -482,11 +510,12 @@ select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 42px;
-  padding: 0 16px;
+  min-height: 34px;
+  padding: 0 12px;
   border-radius: 8px;
   color: #475467;
   background: #fff;
+  font-size: 13px;
 }
 
 .status-bar span:first-child {
@@ -501,7 +530,7 @@ select {
 
 @media (max-width: 1280px) {
   .exam-bar {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .wide-field {
@@ -509,6 +538,6 @@ select {
   }
 
   .workbench {
-    grid-template-columns: 220px minmax(360px, 1fr) 340px;
+    grid-template-columns: 220px minmax(0, 1fr) 340px;
   }
 }
