@@ -158,7 +158,7 @@ function setMode(mode) {
 }
 
 function handleCanvasClick(event) {
-  if (!state.image || !state.mode || viewer.dragging) return;
+  if (event.button !== 0 || viewer.shouldIgnoreClick() || !state.image || !state.mode) return;
   const point = viewer.eventToImage(event);
   if (point.x < 0 || point.y < 0 || point.x > state.image.naturalWidth || point.y > state.image.naturalHeight) {
     setStatus("Clique ficou fora da imagem.");

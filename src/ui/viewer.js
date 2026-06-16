@@ -10,6 +10,8 @@ export class ImageViewer {
     this.image = null;
     this.dragging = false;
     this.dragStart = null;
+    this.panMoved = false;
+    this.suppressNextClick = false;
     this.spaceDown = false;
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(wrap);
@@ -40,20 +42,30 @@ export class ImageViewer {
           offsetX: this.viewport.offsetX,
           offsetY: this.viewport.offsetY
         };
+        this.panMoved = false;
         this.canvas.setPointerCapture(event.pointerId);
       }
     });
 
     this.canvas.addEventListener("pointermove", (event) => {
       if (!this.dragging || !this.dragStart) return;
-      this.viewport.offsetX = this.dragStart.offsetX + event.clientX - this.dragStart.x;
-      this.viewport.offsetY = this.dragStart.offsetY + event.clientY - this.dragStart.y;
+      const deltaX = event.clientX - this.dragStart.x;
+      const deltaY = event.clientY - this.dragStart.y;
+      if (Math.hypot(deltaX, deltaY) > 3) {
+        this.panMoved = true;
+      }
+      this.viewport.offsetX = this.dragStart.offsetX + deltaX;
+      this.viewport.offsetY = this.dragStart.offsetY + deltaY;
       this.draw();
     });
 
     this.canvas.addEventListener("pointerup", (event) => {
+      if (this.dragging && this.panMoved) {
+        this.suppressNextClick = true;
+      }
       this.dragging = false;
       this.dragStart = null;
+      this.panMoved = false;
       try {
         this.canvas.releasePointerCapture(event.pointerId);
       } catch {
@@ -127,6 +139,14 @@ export class ImageViewer {
   eventToImage(event) {
     const rect = this.canvas.getBoundingClientRect();
     return this.screenToImage({ x: event.clientX - rect.left, y: event.clientY - rect.top });
+  }
+
+  shouldIgnoreClick() {
+    if (this.dragging || this.spaceDown || this.suppressNextClick) {
+      this.suppressNextClick = false;
+      return true;
+    }
+    return false;
   }
 
   draw() {
