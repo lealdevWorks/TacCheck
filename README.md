@@ -31,6 +31,10 @@ http://127.0.0.1:8765/index.html?demo=1
 - `tests/`: testes automatizados dos casos reais, geometria e coordenadas.
 - `evidencias/`: prints gerados para a entrega.
 
+## Metodologia
+
+A analise foi realizada por conferencia rapida em imagem digital do disco de tacografo, utilizando calibracao em pixels a partir das linhas reais de 40 km/h e 60 km/h impressas no disco. A linha de 50 km/h foi calculada automaticamente como ponto medio entre as referencias 40 km/h e 60 km/h. A velocidade indicada no disco foi obtida pela marcacao do topo do registro da velocidade, conforme criterio operacional de leitura. O resultado foi calculado pela diferenca entre a velocidade indicada no disco e a velocidade maxima real do ensaio, respeitando a tolerancia configurada.
+
 ## Provas geradas
 
 - `evidencias/tela_demo_52_101_47_740.png`

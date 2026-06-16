@@ -5,6 +5,8 @@ import { ImageViewer } from "./viewer.js";
 
 const $ = (id) => document.getElementById(id);
 
+const METHODOLOGY_TEXT = "A analise foi realizada por conferencia rapida em imagem digital do disco de tacografo, utilizando calibracao em pixels a partir das linhas reais de 40 km/h e 60 km/h impressas no disco. A linha de 50 km/h foi calculada automaticamente como ponto medio entre as referencias 40 km/h e 60 km/h. A velocidade indicada no disco foi obtida pela marcacao do topo do registro da velocidade, conforme criterio operacional de leitura. O resultado foi calculado pela diferenca entre a velocidade indicada no disco e a velocidade maxima real do ensaio, respeitando a tolerancia configurada.";
+
 const COLORS = {
   line40: "#149447",
   line60: "#0b6bdc",
@@ -21,8 +23,7 @@ const state = {
   marks: {
     line40: [],
     line60: [],
-    registerUpper: [],
-    registerLower: []
+    registerTop: []
   },
   mode: null,
   contrast: 1,
@@ -49,8 +50,7 @@ const els = {
   undoButton: $("undoButton"),
   mark40Button: $("mark40Button"),
   mark60Button: $("mark60Button"),
-  markUpperButton: $("markUpperButton"),
-  markLowerButton: $("markLowerButton"),
+  markTopButton: $("markTopButton"),
   clearMarksButton: $("clearMarksButton"),
   markedImageButton: $("markedImageButton"),
   plateInput: $("plateInput"),
@@ -118,8 +118,7 @@ function bindEvents() {
   els.undoButton.addEventListener("click", undoLastMark);
   els.mark40Button.addEventListener("click", () => setMode("line40"));
   els.mark60Button.addEventListener("click", () => setMode("line60"));
-  els.markUpperButton.addEventListener("click", () => setMode("registerUpper"));
-  els.markLowerButton.addEventListener("click", () => setMode("registerLower"));
+  els.markTopButton.addEventListener("click", () => setMode("registerTop"));
   els.clearMarksButton.addEventListener("click", clearMarks);
   els.markedImageButton.addEventListener("click", downloadMarkedImage);
   els.canvas.addEventListener("click", handleCanvasClick);
@@ -172,10 +171,9 @@ function handleCanvasClick(event) {
 
   const label = modeLabel(state.mode);
   setStatus(`${label}: ponto ${bucket.length} marcado em coordenada real (${formatNumber(point.x, 1)}, ${formatNumber(point.y, 1)}).`);
-
-  if ((state.mode === "registerUpper" || state.mode === "registerLower") && bucket.length >= 2) {
-    state.mode = null;
-  }
+  state.lastAnalysis = null;
+  state.lastSnapshot = null;
+  resetResult();
   updateUi();
   viewer.draw();
 }
@@ -186,8 +184,7 @@ function calculate() {
     const analysis = calculateAnalysis({
       line40Points: state.marks.line40,
       line60Points: state.marks.line60,
-      registerUpperPoints: state.marks.registerUpper,
-      registerLowerPoints: state.marks.registerLower,
+      registerTopPoints: state.marks.registerTop,
       maxSpeed: parseNumber(els.maxSpeedInput.value),
       tolerance: parseNumber(els.toleranceInput.value, 4),
       failCriterion: els.criterionInput.value
@@ -195,8 +192,8 @@ function calculate() {
     state.lastAnalysis = analysis;
     state.lastSnapshot = buildSnapshot(analysis);
     updateResult(analysis);
-    setStatus("Cálculo concluído com coordenadas reais da imagem.");
-    els.lastCalcText.textContent = `Último cálculo: ${new Date().toLocaleString("pt-BR")}`;
+    setStatus("Calculo concluido com a linha de leitura do topo do registro.");
+    els.lastCalcText.textContent = `Ultimo calculo: ${new Date().toLocaleString("pt-BR")}`;
     viewer.draw();
   } catch (error) {
     setStatus(error.message);
@@ -208,9 +205,8 @@ function validateBeforeCalculation() {
   if (!state.image) throw new Error("Carregue uma imagem.");
   if (state.marks.line40.length < 2) throw new Error("Marque pelo menos 2 pontos na linha 40 km/h.");
   if (state.marks.line60.length < 2) throw new Error("Marque pelo menos 2 pontos na linha 60 km/h.");
-  if (state.marks.registerUpper.length < 2) throw new Error("Marque pelo menos 2 pontos na borda superior do registro.");
-  if (state.marks.registerLower.length < 2) throw new Error("Marque pelo menos 2 pontos na borda inferior do registro.");
-  if (parseNumber(els.maxSpeedInput.value) <= 0) throw new Error("Informe a velocidade máxima real do ensaio.");
+  if (state.marks.registerTop.length < 1) throw new Error("Marque pelo menos 1 ponto no topo do registro.");
+  if (parseNumber(els.maxSpeedInput.value) <= 0) throw new Error("Informe a velocidade maxima real do ensaio.");
 }
 
 function drawScene(ctx, viewport, rect) {
@@ -231,10 +227,9 @@ function drawScene(ctx, viewport, rect) {
 
   ctx.save();
   ctx.lineWidth = 2;
-  drawPointSet(ctx, viewport, state.marks.line40, COLORS.line40, "40");
-  drawPointSet(ctx, viewport, state.marks.line60, COLORS.line60, "60");
-  drawPointSet(ctx, viewport, state.marks.registerUpper, COLORS.limit, "");
-  drawPointSet(ctx, viewport, state.marks.registerLower, COLORS.limit, "");
+  drawPointSet(ctx, state.marks.line40, COLORS.line40, "40");
+  drawPointSet(ctx, state.marks.line60, COLORS.line60, "60");
+  drawPointSet(ctx, state.marks.registerTop, COLORS.register, "topo");
 
   if (state.lastAnalysis) {
     drawEvidence(ctx, viewport, state.lastAnalysis, rect);
@@ -248,18 +243,16 @@ function drawEvidence(ctx, viewport, analysis) {
   const upper = analysis.result.upperLimit;
   const indicated = analysis.result.indicatedSpeed;
 
-  drawSpeedLine(ctx, viewport, analysis.calibration, 40, COLORS.line40, "40 km/h", false, 0, 0);
-  drawSpeedLine(ctx, viewport, analysis.calibration, 60, COLORS.line60, "60 km/h", false, 0, 0);
-  drawSpeedLine(ctx, viewport, analysis.calibration, 50, COLORS.line50, "50 km/h", false, -4, 20);
-  drawSpeedLine(ctx, viewport, analysis.calibration, maxSpeed, COLORS.max, `Máx. ${formatNumber(maxSpeed)}`, false, -10, -40);
-  drawSpeedLine(ctx, viewport, analysis.calibration, lower, COLORS.limit, `Limite inf. ${formatNumber(lower)}`, true, 20, -120);
-  drawSpeedLine(ctx, viewport, analysis.calibration, upper, COLORS.limit, `Limite sup. ${formatNumber(upper)}`, true, -10, -120);
-
-  drawRegisterBand(ctx, viewport, analysis);
-  drawSpeedLine(ctx, viewport, analysis.calibration, indicated, COLORS.register, `Centro ${formatNumber(indicated)}`, false, 38, 170);
+  drawSpeedLine(ctx, analysis.calibration, 40, COLORS.line40, "40 km/h", false, 0, 0);
+  drawSpeedLine(ctx, analysis.calibration, 60, COLORS.line60, "60 km/h", false, 0, 0);
+  drawSpeedLine(ctx, analysis.calibration, 50, COLORS.line50, "50 km/h", false, -4, 20);
+  drawSpeedLine(ctx, analysis.calibration, maxSpeed, COLORS.max, `Max. ${formatNumber(maxSpeed)}`, false, -10, -40);
+  drawSpeedLine(ctx, analysis.calibration, lower, COLORS.limit, `Limite inf. ${formatNumber(lower)}`, true, 20, -120);
+  drawSpeedLine(ctx, analysis.calibration, upper, COLORS.limit, `Limite sup. ${formatNumber(upper)}`, true, -10, -120);
+  drawSpeedLine(ctx, analysis.calibration, indicated, COLORS.register, `Vel. indicada ${formatNumber(indicated)}`, false, 34, 140);
 }
 
-function drawPointSet(ctx, viewport, points, color, label) {
+function drawPointSet(ctx, points, color, label) {
   if (!points.length) return;
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
@@ -290,7 +283,7 @@ function drawPointSet(ctx, viewport, points, color, label) {
   }
 }
 
-function drawSpeedLine(ctx, viewport, calibration, speed, color, label, dashed, labelOffsetY = 0, labelOffsetX = 0) {
+function drawSpeedLine(ctx, calibration, speed, color, label, dashed, labelOffsetY = 0, labelOffsetX = 0) {
   const center = pointForSpeed(calibration, speed);
   const half = Math.max(state.image.naturalWidth, state.image.naturalHeight);
   const a = {
@@ -327,43 +320,12 @@ function drawSpeedLine(ctx, viewport, calibration, speed, color, label, dashed, 
   ctx.restore();
 }
 
-function drawRegisterBand(ctx, viewport, analysis) {
-  const calibration = analysis.calibration;
-  const upper = analysis.register.upperProjection;
-  const lower = analysis.register.lowerProjection;
-  const left = -Math.max(state.image.naturalWidth, state.image.naturalHeight);
-  const right = Math.max(state.image.naturalWidth, state.image.naturalHeight);
-  const corners = [
-    pointOnAxis(calibration, upper, left),
-    pointOnAxis(calibration, upper, right),
-    pointOnAxis(calibration, lower, right),
-    pointOnAxis(calibration, lower, left)
-  ].map((point) => viewer.imageToScreen(point));
-
-  ctx.save();
-  ctx.fillStyle = "rgba(225, 180, 0, 0.22)";
-  ctx.strokeStyle = COLORS.register;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(corners[0].x, corners[0].y);
-  corners.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
-}
-
-function pointOnAxis(calibration, projection, along) {
-  return {
-    x: calibration.origin.x + calibration.normal.x * projection + calibration.direction.x * along,
-    y: calibration.origin.y + calibration.normal.y * projection + calibration.direction.y * along
-  };
-}
-
 function updateUi() {
   els.imageStepStatus.textContent = state.image ? "carregada" : "pendente";
   els.scaleStepStatus.textContent = `${state.marks.line40.length}/2 40 | ${state.marks.line60.length}/2 60`;
-  els.registerStepStatus.textContent = `${state.marks.registerUpper.length}/2 sup. | ${state.marks.registerLower.length}/2 inf.`;
+  els.registerStepStatus.textContent = state.marks.registerTop.length
+    ? `${state.marks.registerTop.length}/3 topo`
+    : "pendente";
   els.resultStepStatus.textContent = state.lastAnalysis ? "calculado" : "aguardando";
   updateStepClasses();
   updateModeText();
@@ -377,7 +339,7 @@ function updateStepClasses() {
   if (state.marks.line40.length >= 2 && state.marks.line60.length >= 2) {
     document.querySelector('[data-step="scale"]').classList.add("is-done");
   }
-  if (state.marks.registerUpper.length >= 2 && state.marks.registerLower.length >= 2) {
+  if (state.marks.registerTop.length >= 1) {
     document.querySelector('[data-step="register"]').classList.add("is-done");
   }
   if (state.lastAnalysis) {
@@ -393,12 +355,11 @@ function updateStepClasses() {
 
 function updateModeText() {
   const texts = {
-    line40: ["Modo marcação: linha 40 km/h", "Clique em 2 pontos sobre a linha verde de 40 km/h. Um 3º ponto é aceito para melhorar a reta."],
-    line60: ["Modo marcação: linha 60 km/h", "Clique em 2 pontos sobre a linha azul de 60 km/h. O eixo de cálculo será 40 -> 60."],
-    registerUpper: ["Modo marcação: borda superior", "Clique em 2 pontos na borda superior do traço do tacógrafo."],
-    registerLower: ["Modo marcação: borda inferior", "Clique em 2 pontos na borda inferior do traço. O centro será calculado entre as bordas."]
+    line40: ["Modo marcacao: linha 40 km/h", "Clique em 2 pontos sobre a linha verde de 40 km/h. Um 3o ponto e aceito para melhorar a reta."],
+    line60: ["Modo marcacao: linha 60 km/h", "Clique em 2 pontos sobre a linha azul de 60 km/h. O eixo de calculo sera 40 -> 60."],
+    registerTop: ["Modo marcacao: topo do registro", "Clique no topo do traco de velocidade. Use 1 ponto no modo simples, ou 2 a 3 pontos para calcular uma linha media de leitura."]
   };
-  const [title, text] = texts[state.mode] || ["Como marcar", "Carregue a imagem e use os botões de marcação. Cada linha precisa de pelo menos 2 pontos."];
+  const [title, text] = texts[state.mode] || ["Como marcar", "Carregue a imagem e use os botoes de marcacao. Marque 40, 60 e o topo do registro."];
   els.modeTitle.textContent = title;
   els.modeText.textContent = text;
 }
@@ -406,7 +367,7 @@ function updateModeText() {
 function updateQuality() {
   if (state.lastAnalysis) {
     const cal = state.lastAnalysis.calibration;
-    els.qualityText.textContent = `${cal.quality} | ${formatNumber(cal.pixelsPerKm, 2)} px/km | ${formatNumber(cal.angularDifference, 2)}°`;
+    els.qualityText.textContent = `${cal.quality} | ${formatNumber(cal.pixelsPerKm, 2)} px/km | ${formatNumber(cal.angularDifference, 2)} graus`;
     return;
   }
   els.qualityText.textContent = "aguardando escala";
@@ -419,7 +380,7 @@ function updateResult(analysis) {
   els.divergenceOutput.textContent = `${formatNumber(result.divergence)} km/h`;
   els.lowerLimitOutput.textContent = `${formatNumber(result.lowerLimit)} km/h`;
   els.upperLimitOutput.textContent = `${formatNumber(result.upperLimit)} km/h`;
-  els.toleranceOutput.textContent = `±${formatNumber(result.tolerance)} km/h`;
+  els.toleranceOutput.textContent = `+/-${formatNumber(result.tolerance)} km/h`;
   els.statusBadge.textContent = result.result;
   els.statusBadge.className = `status-badge ${result.approved ? "approved" : ""}`;
   els.reasonOutput.textContent = result.reason;
@@ -427,7 +388,7 @@ function updateResult(analysis) {
 
 function buildSnapshot(analysis) {
   return {
-    metodo: "recorte_40_60",
+    metodo: "recorte_40_60_topo_registro",
     imagem: state.imageName,
     placa: els.plateInput.value,
     data_ensaio: els.dateInput.value,
@@ -436,6 +397,7 @@ function buildSnapshot(analysis) {
     tolerancia: analysis.result.tolerance,
     criterio_reprovacao: els.criterionInput.value,
     pontos: structuredClone(state.marks),
+    metodologia: METHODOLOGY_TEXT,
     qualidade: {
       pixels_por_km: analysis.calibration.pixelsPerKm,
       diferenca_angular: analysis.calibration.angularDifference,
@@ -455,7 +417,7 @@ function saveAnalysis() {
   const list = JSON.parse(localStorage.getItem("taccheck_analises") || "[]");
   list.unshift(state.lastSnapshot);
   localStorage.setItem("taccheck_analises", JSON.stringify(list.slice(0, 50)));
-  setStatus("Análise salva no armazenamento local do navegador.");
+  setStatus("Analise salva no armazenamento local do navegador.");
 }
 
 function downloadMarkedImage() {
@@ -477,14 +439,11 @@ function renderMarkedImage() {
   canvas.height = state.image.naturalHeight;
   const ctx = canvas.getContext("2d");
   ctx.drawImage(state.image, 0, 0);
-  const previousViewer = {
-    imageToScreen: viewer.imageToScreen.bind(viewer)
-  };
   const backup = viewer.imageToScreen;
   viewer.imageToScreen = (point) => point;
   drawEvidence(ctx, { scale: 1, offsetX: 0, offsetY: 0 }, state.lastAnalysis);
   drawResultBox(ctx, state.lastAnalysis);
-  viewer.imageToScreen = backup || previousViewer.imageToScreen;
+  viewer.imageToScreen = backup;
   return canvas;
 }
 
@@ -502,13 +461,13 @@ function drawResultBox(ctx, analysis) {
   ctx.strokeRect(x, y, boxWidth, boxHeight);
   ctx.fillStyle = COLORS.text;
   ctx.font = "700 18px Segoe UI";
-  ctx.fillText("TacCheck - Análise de velocidade", x + 14, y + 28);
+  ctx.fillText("TacCheck - Analise de velocidade", x + 14, y + 28);
   ctx.font = "14px Segoe UI";
   const rows = [
-    `Vel. máxima do ensaio: ${formatNumber(result.maxSpeed)} km/h`,
+    `Vel. maxima do ensaio: ${formatNumber(result.maxSpeed)} km/h`,
     `Vel. indicada no disco: ${formatNumber(result.indicatedSpeed)} km/h`,
-    `Divergência: ${formatNumber(result.divergence)} km/h`,
-    `Tolerância: ±${formatNumber(result.tolerance)} km/h`,
+    `Divergencia: ${formatNumber(result.divergence)} km/h`,
+    `Tolerancia: +/-${formatNumber(result.tolerance)} km/h`,
     `Limites: ${formatNumber(result.lowerLimit)} a ${formatNumber(result.upperLimit)} km/h`,
     `Resultado: ${result.result}`,
     `Motivo: ${result.reason}`
@@ -521,26 +480,25 @@ function clearMarks(resetStatus = true) {
   state.marks = {
     line40: [],
     line60: [],
-    registerUpper: [],
-    registerLower: []
+    registerTop: []
   };
   state.mode = null;
   state.lastAnalysis = null;
   state.lastSnapshot = null;
-  if (resetStatus) setStatus("Marcações limpas.");
+  if (resetStatus) setStatus("Marcacoes limpas.");
   resetResult();
   updateUi();
   viewer.draw();
 }
 
 function undoLastMark() {
-  const order = ["registerLower", "registerUpper", "line60", "line40"];
+  const order = ["registerTop", "line60", "line40"];
   for (const key of order) {
     if (state.marks[key].length) {
       state.marks[key].pop();
       state.lastAnalysis = null;
       state.lastSnapshot = null;
-      setStatus(`Último ponto removido de ${modeLabel(key)}.`);
+      setStatus(`Ultimo ponto removido de ${modeLabel(key)}.`);
       resetResult();
       updateUi();
       viewer.draw();
@@ -556,18 +514,17 @@ function resetResult() {
   els.lowerLimitOutput.textContent = "-";
   els.upperLimitOutput.textContent = "-";
   els.toleranceOutput.textContent = "-";
-  els.statusBadge.textContent = "Aguardando cálculo";
+  els.statusBadge.textContent = "Aguardando calculo";
   els.statusBadge.className = "status-badge muted";
-  els.reasonOutput.textContent = "Marque a escala e o registro para calcular.";
+  els.reasonOutput.textContent = "Marque a escala e o topo do registro para calcular.";
 }
 
 function modeLabel(mode) {
   return {
     line40: "Linha 40",
     line60: "Linha 60",
-    registerUpper: "Borda superior",
-    registerLower: "Borda inferior"
-  }[mode] || "Marcação";
+    registerTop: "Topo do registro"
+  }[mode] || "Marcacao";
 }
 
 function setStatus(message) {
@@ -604,14 +561,10 @@ function loadDemo() {
   ctx.fillText("80", 0, 0);
   ctx.restore();
   ctx.strokeStyle = "rgba(70, 100, 70, 0.45)";
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 6;
   ctx.beginPath();
-  ctx.moveTo(350, 461);
-  ctx.bezierCurveTo(500, 458, 680, 466, 860, 462);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(350, 469);
-  ctx.bezierCurveTo(520, 471, 690, 466, 860, 470);
+  ctx.moveTo(350, 465.2);
+  ctx.bezierCurveTo(500, 462, 680, 470, 860, 466);
   ctx.stroke();
 
   const image = new Image();
@@ -619,8 +572,7 @@ function loadDemo() {
     setImage(image, "demo_52_101_47_740.png");
     state.marks.line40 = [{ x: 80, y: 620 }, { x: 1120, y: 620 }];
     state.marks.line60 = [{ x: 80, y: 220 }, { x: 1120, y: 220 }];
-    state.marks.registerUpper = [{ x: 350, y: 461.2 }, { x: 860, y: 461.2 }];
-    state.marks.registerLower = [{ x: 350, y: 469.2 }, { x: 860, y: 469.2 }];
+    state.marks.registerTop = [{ x: 350, y: 465.2 }, { x: 605, y: 465.2 }, { x: 860, y: 465.2 }];
     calculate();
   };
   image.src = canvas.toDataURL("image/png");
