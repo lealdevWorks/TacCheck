@@ -486,6 +486,11 @@ select {
   background: var(--green);
 }
 
+.status-badge.ready {
+  background: var(--blue);
+  font-size: 15px;
+}
+
 .status-badge.muted {
   background: #64748b;
   font-size: 14px;

@@ -43,3 +43,17 @@ test("bloqueia calculo sem topo do registro", () => {
   assert.equal(readiness.canCalculate, false);
   assert.equal(readiness.reason, "aguardando topo do registro");
 });
+
+test("bloqueia calculo sem velocidade maxima valida", () => {
+  const readiness = getCalculationReadiness({
+    imageLoaded: true,
+    line40Points: [{}, {}],
+    line60Points: [{}, {}],
+    registerTopPoints: [{}],
+    maxSpeed: "",
+    tolerance: 4
+  });
+
+  assert.equal(readiness.canCalculate, false);
+  assert.equal(readiness.reason, "aguardando velocidade maxima");
+});

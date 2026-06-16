@@ -185,7 +185,7 @@ function calculate(options = {}) {
   const config = options instanceof Event ? {} : options;
   try {
     validateBeforeSpeedRequest();
-    const maxSpeed = config.maxSpeed ?? requestMaxSpeed();
+    const maxSpeed = config.maxSpeed ?? getMaxSpeedForCalculation();
     validateBeforeCalculation(maxSpeed);
     const analysis = calculateAnalysis({
       line40Points: state.marks.line40,
@@ -215,6 +215,14 @@ function validateBeforeSpeedRequest() {
   if (state.marks.registerTop.length < 1) throw new Error("Marque pelo menos 1 ponto no topo do registro.");
 }
 
+function getMaxSpeedForCalculation() {
+  const typedSpeed = parseNumber(els.maxSpeedInput.value, Number.NaN);
+  if (Number.isFinite(typedSpeed) && typedSpeed > 0) {
+    return typedSpeed;
+  }
+  return requestMaxSpeed();
+}
+
 function requestMaxSpeed() {
   const currentValue = els.maxSpeedInput.value.trim();
   const answer = window.prompt("Informe a velocidade maxima atingida no ensaio (km/h):", currentValue);
@@ -239,8 +247,7 @@ function getUiReadiness() {
     line60Points: state.marks.line60,
     registerTopPoints: state.marks.registerTop,
     maxSpeed: els.maxSpeedInput.value,
-    tolerance: els.toleranceInput.value,
-    maxSpeedRequired: false
+    tolerance: els.toleranceInput.value
   });
 }
 
@@ -367,6 +374,7 @@ function updateUi() {
   updateStepClasses();
   updateModeText();
   updateQuality(readiness);
+  if (!state.lastAnalysis) updateResultPlaceholder(readiness);
 }
 
 function updateStepClasses() {
@@ -421,6 +429,36 @@ function updateQuality(readiness = getUiReadiness()) {
   }
   const precision = state.marks.registerTop.length === 1 ? "precisao basica" : "precisao melhor";
   els.qualityText.textContent = `pronto para calcular | ${precision}`;
+}
+
+function updateResultPlaceholder(readiness) {
+  els.maxSpeedOutput.textContent = "-";
+  els.indicatedSpeedOutput.textContent = "-";
+  els.divergenceOutput.textContent = "-";
+  els.lowerLimitOutput.textContent = "-";
+  els.upperLimitOutput.textContent = "-";
+  els.toleranceOutput.textContent = "-";
+
+  if (readiness.canCalculate) {
+    els.statusBadge.textContent = "Pronto para calcular";
+    els.statusBadge.className = "status-badge ready";
+    els.reasonOutput.textContent = "Clique em Calcular para gerar o resultado.";
+    return;
+  }
+
+  els.statusBadge.textContent = "Aguardando calculo";
+  els.statusBadge.className = "status-badge muted";
+  els.reasonOutput.textContent = readinessMessage(readiness.reason);
+}
+
+function readinessMessage(reason) {
+  return {
+    "aguardando imagem": "Carregue uma imagem para iniciar a analise.",
+    "aguardando escala": "Marque 2 pontos na linha 40 e 2 pontos na linha 60.",
+    "aguardando topo do registro": "Marque pelo menos 1 ponto no topo do registro.",
+    "aguardando velocidade maxima": "Informe a velocidade maxima do ensaio.",
+    "aguardando tolerancia": "Informe uma tolerancia valida."
+  }[reason] || "Complete os dados para calcular.";
 }
 
 function updateResult(analysis) {
