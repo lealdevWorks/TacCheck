@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TacCheck - Análise de Disco de Tacógrafo</title>
+    <link rel="stylesheet" href="./src/styles/main.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span>
+          </div>
+          <div>
+            <h1>TacCheck</h1>
+            <p>Análise de Disco de Tacógrafo</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="loadImageButton" class="button button-light">Carregar imagem</button>
+          <button id="calculateButton" class="button button-primary">Calcular</button>
+          <button id="saveButton" class="button button-success">Salvar análise</button>
+        </div>
+      </header>
+
+      <section class="exam-bar" aria-label="Dados do ensaio">
+        <label>
+          <span>Placa</span>
+          <input id="plateInput" value="ABC1D23" autocomplete="off">
+        </label>
+        <label>
+          <span>Data do ensaio</span>
+          <input id="dateInput" type="date">
+        </label>
+        <label>
+          <span>Velocidade alvo</span>
+          <select id="targetSpeedInput">
+            <option value="50">50 km/h</option>
+            <option value="40/60">40/60 km/h</option>
+          </select>
+        </label>
+        <label>
+          <span>Velocidade máxima do ensaio</span>
+          <div class="input-addon">
+            <input id="maxSpeedInput" value="52,101" inputmode="decimal">
+            <b>km/h</b>
+          </div>
+        </label>
+        <label>
+          <span>Tolerância</span>
+          <div class="input-addon short">
+            <input id="toleranceInput" value="4,000" inputmode="decimal">
+            <b>km/h</b>
+          </div>
+        </label>
+        <label>
+          <span>Critério</span>
+          <select id="criterionInput">
+            <option value="gt">Reprovar se &gt; tolerância</option>
+            <option value="gte">Reprovar se ≥ tolerância</option>
+          </select>
+        </label>
+        <label class="wide-field">
+          <span>Observação</span>
+          <input id="noteInput" placeholder="Opcional">
+        </label>
+      </section>
+
+      <main class="workbench">
+        <aside class="left-panel">
+          <nav class="steps" aria-label="Etapas">
+            <button class="step is-active" data-step="image">
+              <strong>1</strong>
+              <span>Imagem<small id="imageStepStatus">pendente</small></span>
+            </button>
+            <button class="step" data-step="scale">
+              <strong>2</strong>
+              <span>Escala<small id="scaleStepStatus">pendente</small></span>
+            </button>
+            <button class="step" data-step="register">
+              <strong>3</strong>
+              <span>Registro<small id="registerStepStatus">pendente</small></span>
+            </button>
+            <button class="step" data-step="result">
+              <strong>4</strong>
+              <span>Resultado<small id="resultStepStatus">aguardando</small></span>
+            </button>
+          </nav>
+
+          <section class="legend">
+            <h2>Legenda</h2>
+            <p><i class="line green"></i>40 km/h</p>
+            <p><i class="line blue"></i>60 km/h</p>
+            <p><i class="line red"></i>50 km/h</p>
+            <p><i class="line purple"></i>Velocidade máxima</p>
+            <p><i class="line dash"></i>Limites</p>
+            <p><i class="line yellow"></i>Centro do registro</p>
+          </section>
+        </aside>
+
+        <section class="canvas-panel">
+          <div class="tool-strip" aria-label="Ferramentas da imagem">
+            <button id="zoomInButton" title="Zoom +">+</button>
+            <button id="zoomOutButton" title="Zoom -">−</button>
+            <button id="fitButton" title="Ajustar à tela">Ajustar</button>
+            <button id="actualSizeButton" title="Zoom 100%">100%</button>
+            <button id="contrastButton" title="Aumentar contraste">Contraste</button>
+            <button id="resetViewButton" title="Redefinir visualização">Redefinir</button>
+            <button id="toggleMarksButton" title="Mostrar ou ocultar marcações">Marcas</button>
+            <button id="undoButton" title="Desfazer última marcação">Desfazer</button>
+          </div>
+          <div id="canvasWrap" class="canvas-wrap">
+            <canvas id="imageCanvas"></canvas>
+            <div id="emptyState" class="empty-state">
+              <strong>Carregue uma imagem do disco</strong>
+              <span>Depois marque as linhas 40, 60 e as duas bordas do registro.</span>
+            </div>
+          </div>
+          <div class="mark-toolbar">
+            <button id="mark40Button" class="button button-light">Marcar 40</button>
+            <button id="mark60Button" class="button button-light">Marcar 60</button>
+            <button id="markUpperButton" class="button button-light">Borda superior</button>
+            <button id="markLowerButton" class="button button-light">Borda inferior</button>
+            <button id="clearMarksButton" class="button button-danger-light">Limpar marcações</button>
+          </div>
+        </section>
+
+        <aside class="right-panel">
+          <section class="card instructions">
+            <h2 id="modeTitle">Como marcar</h2>
+            <p id="modeText">Carregue a imagem e use os botões de marcação. Cada linha precisa de pelo menos 2 pontos.</p>
+            <div id="qualityBox" class="quality-box">
+              <span>Calibração</span>
+              <strong id="qualityText">aguardando escala</strong>
+            </div>
+          </section>
+
+          <section class="card result-card">
+            <h2>Resultado da análise</h2>
+            <dl>
+              <div><dt>Vel. máxima do ensaio</dt><dd id="maxSpeedOutput">-</dd></div>
+              <div><dt>Vel. indicada no disco</dt><dd id="indicatedSpeedOutput">-</dd></div>
+              <div><dt>Divergência</dt><dd id="divergenceOutput">-</dd></div>
+              <div><dt>Limite inferior</dt><dd id="lowerLimitOutput">-</dd></div>
+              <div><dt>Limite superior</dt><dd id="upperLimitOutput">-</dd></div>
+              <div><dt>Tolerância</dt><dd id="toleranceOutput">-</dd></div>
+            </dl>
+            <div id="statusBadge" class="status-badge muted">Aguardando cálculo</div>
+            <p id="reasonOutput" class="reason">Marque a escala e o registro para calcular.</p>
+          </section>
+
+          <section class="card actions-card">
+            <button id="markedImageButton" class="button button-light">Gerar imagem marcada</button>
+          </section>
+        </aside>
+      </main>
+
+      <footer class="status-bar">
+        <span id="statusText">Sistema pronto</span>
+        <span id="lastCalcText">Último cálculo: -</span>
+      </footer>
+    </div>
+
+    <input id="fileInput" type="file" accept="image/*" hidden>
+    <script type="module" src="./src/ui/app.js"></script>
+  </body>
+</html>
