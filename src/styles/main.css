@@ -507,9 +507,10 @@ select {
 }
 
 .status-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   min-height: 34px;
   padding: 0 12px;
   border-radius: 8px;
@@ -521,6 +522,15 @@ select {
 .status-bar span:first-child {
   color: var(--green);
   font-weight: 700;
+}
+
+.version-text {
+  color: #667085;
+  font-weight: 700;
+}
+
+#lastCalcText {
+  justify-self: end;
 }
 
 .point-count {
