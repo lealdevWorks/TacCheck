@@ -370,7 +370,7 @@ function updateUi() {
     ? `${state.marks.registerTop.length}/3 topo`
     : "pendente";
   els.resultStepStatus.textContent = state.lastAnalysis ? "calculado" : "aguardando";
-  els.calculateButton.disabled = !readiness.canCalculate;
+  els.calculateButton.disabled = false;
   updateStepClasses();
   updateModeText();
   updateQuality(readiness);
