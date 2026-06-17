@@ -6,6 +6,8 @@ import { ImageViewer } from "./viewer.js";
 
 const $ = (id) => document.getElementById(id);
 
+const APP_VERSION = "0.2.0";
+const HISTORY_STORAGE_KEY = "taccheck_analises";
 const METHODOLOGY_TEXT = "A analise foi realizada por conferencia rapida em imagem digital do disco de tacografo, utilizando calibracao em pixels a partir das linhas reais de 40 km/h e 60 km/h impressas no disco. A linha de 50 km/h foi calculada automaticamente como ponto medio entre as referencias 40 km/h e 60 km/h. A velocidade indicada no disco foi obtida pela marcacao do topo do registro da velocidade, conforme criterio operacional de leitura. O resultado foi calculado pela diferenca entre a velocidade indicada no disco e a velocidade maxima real do ensaio, respeitando a tolerancia configurada.";
 
 const COLORS = {
@@ -58,6 +60,8 @@ const els = {
   clearMarksButton: $("clearMarksButton"),
   markedImageButton: $("markedImageButton"),
   calculateResultButton: $("calculateResultButton"),
+  historyCount: $("historyCount"),
+  historyList: $("historyList"),
   plateInput: $("plateInput"),
   dateInput: $("dateInput"),
   targetSpeedInput: $("targetSpeedInput"),
@@ -93,6 +97,7 @@ function init() {
   window.TacCheckCalculate = triggerCalculate;
   bindEvents();
   updateUi();
+  renderHistory();
 
   const params = new URLSearchParams(window.location.search);
   if (params.get("demo") === "1") {
@@ -132,6 +137,7 @@ function bindEvents() {
   els.markTopButton.addEventListener("click", () => setMode("registerTop"));
   els.clearMarksButton.addEventListener("click", clearMarks);
   els.markedImageButton.addEventListener("click", downloadMarkedImage);
+  els.historyList.addEventListener("click", handleHistoryClick);
   els.canvas.addEventListener("click", handleCanvasClick);
   els.toleranceInput.addEventListener("input", clearCalculationError);
   els.maxSpeedInput.addEventListener("input", clearCalculationError);
@@ -418,13 +424,13 @@ function updateUi() {
   els.registerStepStatus.textContent = state.marks.registerTop.length
     ? `${state.marks.registerTop.length}/3 topo`
     : "pendente";
-  els.resultStepStatus.textContent = state.lastAnalysis ? "calculado" : "aguardando";
+  els.resultStepStatus.textContent = state.lastAnalysis || state.lastSnapshot ? "calculado" : "aguardando";
   els.calculateButton.disabled = false;
   els.calculateResultButton.disabled = false;
   updateStepClasses();
   updateModeText();
   updateQuality(readiness);
-  if (!state.lastAnalysis) updateResultPlaceholder(readiness);
+  if (!state.lastAnalysis && !state.lastSnapshot) updateResultPlaceholder(readiness);
 }
 
 function updateStepClasses() {
@@ -437,7 +443,7 @@ function updateStepClasses() {
   if (state.marks.registerTop.length >= 1) {
     document.querySelector('[data-step="register"]').classList.add("is-done");
   }
-  if (state.lastAnalysis) {
+  if (state.lastAnalysis || state.lastSnapshot) {
     document.querySelector('[data-step="result"]').classList.add("is-done", "is-active");
   } else if (state.marks.line40.length >= 2 && state.marks.line60.length >= 2) {
     document.querySelector('[data-step="register"]').classList.add("is-active");
@@ -536,25 +542,41 @@ function updateResult(analysis) {
 }
 
 function buildSnapshot(analysis) {
+  const calculatedAt = new Date().toISOString();
+  const result = analysis.result;
+  const points = structuredClone(state.marks);
+
   return {
     metodo: "recorte_40_60_topo_registro",
     imagem: state.imageName,
     placa: els.plateInput.value,
     data_ensaio: els.dateInput.value,
     velocidade_alvo: els.targetSpeedInput.value,
-    velocidade_maxima_ensaio: analysis.result.maxSpeed,
-    tolerancia: analysis.result.tolerance,
+    velocidade_maxima_ensaio: result.maxSpeed,
+    tolerancia: result.tolerance,
+    criterio: els.criterionInput.value,
     criterio_reprovacao: els.criterionInput.value,
-    pontos: structuredClone(state.marks),
+    velocidade_indicada_disco: result.indicatedSpeed,
+    divergencia: result.divergence,
+    limite_inferior: result.lowerLimit,
+    limite_superior: result.upperLimit,
+    resultado: result.result,
+    motivo: result.reason,
+    pontos_linha_40: points.line40,
+    pontos_linha_60: points.line60,
+    pontos_topo_registro: points.registerTop,
+    data_hora_calculo: calculatedAt,
+    versao_taccheck: APP_VERSION,
+    pontos: points,
     metodologia: METHODOLOGY_TEXT,
     qualidade: {
       pixels_por_km: analysis.calibration.pixelsPerKm,
       diferenca_angular: analysis.calibration.angularDifference,
       classificacao: analysis.calibration.quality
     },
-    resultado: analysis.result,
+    resultado_detalhado: result,
     observacao: els.noteInput.value,
-    criado_em: new Date().toISOString()
+    criado_em: calculatedAt
   };
 }
 
@@ -563,10 +585,228 @@ function saveAnalysis() {
     setStatus("Calcule antes de salvar.");
     return;
   }
-  const list = JSON.parse(localStorage.getItem("taccheck_analises") || "[]");
-  list.unshift(state.lastSnapshot);
-  localStorage.setItem("taccheck_analises", JSON.stringify(list.slice(0, 50)));
+  const list = readHistory();
+  const savedAt = new Date().toISOString();
+  const snapshot = snapshotWithCurrentForm(state.lastSnapshot);
+  const record = {
+    ...snapshot,
+    id: createHistoryId(),
+    salvo_em: savedAt,
+    versao_taccheck: snapshot.versao_taccheck || APP_VERSION
+  };
+  list.unshift(record);
+  writeHistory(list.slice(0, 50));
+  renderHistory();
   setStatus("Analise salva no armazenamento local do navegador.");
+}
+
+function snapshotWithCurrentForm(snapshot) {
+  return {
+    ...structuredClone(snapshot),
+    placa: els.plateInput.value,
+    data_ensaio: els.dateInput.value,
+    velocidade_alvo: els.targetSpeedInput.value,
+    observacao: els.noteInput.value
+  };
+}
+
+function readHistory() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || "[]");
+    if (!Array.isArray(parsed)) return [];
+
+    let changed = false;
+    const records = parsed
+      .filter((record) => record && typeof record === "object")
+      .map((record) => {
+        if (record.id) return record;
+        changed = true;
+        return { ...record, id: createHistoryId() };
+      });
+
+    if (changed) writeHistory(records);
+    return records;
+  } catch {
+    return [];
+  }
+}
+
+function writeHistory(records) {
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(records));
+}
+
+function createHistoryId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `taccheck_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+function renderHistory() {
+  const records = readHistory();
+  els.historyCount.textContent = String(records.length);
+
+  if (!records.length) {
+    els.historyList.innerHTML = '<p class="history-empty">Nenhuma analise salva.</p>';
+    return;
+  }
+
+  els.historyList.innerHTML = records.map((record) => {
+    const result = getRecordResult(record);
+    const approved = result === "APROVADO";
+    const title = escapeHtml(record.placa || "Sem placa");
+    const date = escapeHtml(formatDate(record.data_ensaio) || "Sem data");
+    const calculatedAt = escapeHtml(formatDateTime(record.data_hora_calculo || record.criado_em));
+    const speed = formatMaybeNumber(record.velocidade_maxima_ensaio);
+    return `
+      <div class="history-item" data-id="${escapeHtml(record.id)}">
+        <div class="history-title">
+          <strong>${title}</strong>
+          <span class="history-result ${approved ? "approved" : ""}">${escapeHtml(result || "-")}</span>
+        </div>
+        <div class="history-meta">
+          <span>${date} | Max. ${speed} km/h</span>
+          <span>${calculatedAt}</span>
+        </div>
+        <div class="history-actions">
+          <button type="button" data-action="open">Abrir</button>
+          <button type="button" data-action="export">JSON</button>
+          <button type="button" data-action="delete">Excluir</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function handleHistoryClick(event) {
+  const button = event.target.closest("button[data-action]");
+  const item = event.target.closest(".history-item");
+  if (!button || !item) return;
+
+  const records = readHistory();
+  const record = records.find((entry) => entry.id === item.dataset.id);
+  if (!record) return;
+
+  const action = button.dataset.action;
+  if (action === "open") {
+    openSavedAnalysis(record);
+  } else if (action === "export") {
+    exportSavedAnalysis(record);
+  } else if (action === "delete") {
+    deleteSavedAnalysis(record.id);
+  }
+}
+
+function openSavedAnalysis(record) {
+  const points = pointsFromRecord(record);
+  state.marks = points;
+  state.lastError = null;
+  state.lastSnapshot = record;
+  state.lastAnalysis = buildAnalysisFromRecord(record, points);
+
+  els.plateInput.value = record.placa || "";
+  els.dateInput.value = record.data_ensaio || "";
+  els.targetSpeedInput.value = record.velocidade_alvo || "50";
+  els.maxSpeedInput.value = formatMaybeNumber(record.velocidade_maxima_ensaio);
+  els.toleranceInput.value = formatMaybeNumber(record.tolerancia || 4);
+  els.criterionInput.value = record.criterio || record.criterio_reprovacao || "gt";
+  els.noteInput.value = record.observacao || "";
+
+  if (state.lastAnalysis) {
+    updateResult(state.lastAnalysis);
+  } else {
+    updateResultFromRecord(record);
+  }
+
+  els.lastCalcText.textContent = `Ultimo calculo: ${formatDateTime(record.data_hora_calculo || record.criado_em)}`;
+  setStatus("Analise salva aberta do historico local.");
+  updateUi();
+  viewer.draw();
+}
+
+function buildAnalysisFromRecord(record, points) {
+  try {
+    return calculateAnalysis({
+      line40Points: points.line40,
+      line60Points: points.line60,
+      registerTopPoints: points.registerTop,
+      maxSpeed: parseNumber(record.velocidade_maxima_ensaio, Number.NaN),
+      tolerance: parseNumber(record.tolerancia, Number.NaN),
+      failCriterion: record.criterio || record.criterio_reprovacao || "gt"
+    });
+  } catch {
+    return null;
+  }
+}
+
+function updateResultFromRecord(record) {
+  els.maxSpeedOutput.textContent = `${formatMaybeNumber(record.velocidade_maxima_ensaio)} km/h`;
+  els.indicatedSpeedOutput.textContent = `${formatMaybeNumber(record.velocidade_indicada_disco)} km/h`;
+  els.divergenceOutput.textContent = `${formatMaybeNumber(record.divergencia)} km/h`;
+  els.lowerLimitOutput.textContent = `${formatMaybeNumber(record.limite_inferior)} km/h`;
+  els.upperLimitOutput.textContent = `${formatMaybeNumber(record.limite_superior)} km/h`;
+  els.toleranceOutput.textContent = `+/-${formatMaybeNumber(record.tolerancia)} km/h`;
+  const result = getRecordResult(record);
+  els.statusBadge.textContent = result || "-";
+  els.statusBadge.className = `status-badge ${result === "APROVADO" ? "approved" : ""}`;
+  els.reasonOutput.textContent = record.motivo || "-";
+}
+
+function exportSavedAnalysis(record) {
+  const blob = new Blob([JSON.stringify(record, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.download = `taccheck_${record.placa || "analise"}_${record.id}.json`;
+  link.href = url;
+  link.click();
+  URL.revokeObjectURL(url);
+  setStatus("JSON da analise exportado.");
+}
+
+function deleteSavedAnalysis(id) {
+  const records = readHistory().filter((record) => record.id !== id);
+  writeHistory(records);
+  renderHistory();
+  setStatus("Analise removida do historico local.");
+}
+
+function pointsFromRecord(record) {
+  return {
+    line40: structuredClone(record.pontos_linha_40 || record.pontos?.line40 || []),
+    line60: structuredClone(record.pontos_linha_60 || record.pontos?.line60 || []),
+    registerTop: structuredClone(record.pontos_topo_registro || record.pontos?.registerTop || [])
+  };
+}
+
+function getRecordResult(record) {
+  if (typeof record.resultado === "string") return record.resultado;
+  return record.resultado?.result || record.resultado_detalhado?.result || "";
+}
+
+function formatMaybeNumber(value, digits = 3) {
+  const parsed = parseNumber(value, Number.NaN);
+  return Number.isFinite(parsed) ? formatNumber(parsed, digits) : "-";
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  const [year, month, day] = String(value).split("-");
+  if (!year || !month || !day) return String(value);
+  return `${day}/${month}/${year}`;
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("pt-BR");
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 function downloadMarkedImage() {

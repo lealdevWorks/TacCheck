@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="./assets/brand/apple-touch-icon.png">
     <link rel="manifest" href="./assets/brand/site.webmanifest">
     <meta name="theme-color" content="#071b35">
-    <link rel="stylesheet" href="./src/styles/main.css?v=0.1.9">
+    <link rel="stylesheet" href="./src/styles/main.css?v=0.2.0">
   </head>
   <body>
     <div class="app-shell">
@@ -161,18 +161,26 @@
           <section class="card actions-card">
             <button id="markedImageButton" type="button" class="button button-light">Gerar imagem marcada</button>
           </section>
+
+          <section class="card history-card">
+            <div class="history-head">
+              <h2>Histórico local</h2>
+              <span id="historyCount">0</span>
+            </div>
+            <div id="historyList" class="history-list" aria-live="polite"></div>
+          </section>
           </div>
         </aside>
       </main>
 
       <footer class="status-bar">
         <span id="statusText">Sistema pronto</span>
-        <span class="version-text">TacCheck v0.1.9</span>
+        <span class="version-text">TacCheck v0.2.0</span>
         <span id="lastCalcText">Último cálculo: -</span>
       </footer>
     </div>
 
     <input id="fileInput" type="file" accept="image/*" hidden>
-    <script type="module" src="./src/ui/app.js?v=0.1.9"></script>
+    <script type="module" src="./src/ui/app.js?v=0.2.0"></script>
   </body>
 </html>
