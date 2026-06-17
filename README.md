@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./assets/brand/taccheck-logo-horizontal-light.png" alt="TacCheck - Analise de Disco de Tacografo" width="520">
+</p>
+
 # TacCheck
 
 Primeira entrega do TacCheck como app web estatico para conferencia rapida de disco de tacografo por escala 40/60.

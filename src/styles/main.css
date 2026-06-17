@@ -1,12 +1,23 @@
 :root {
-  --bg: #f4f6f8;
-  --panel: #ffffff;
-  --line: #d8dee8;
-  --muted: #637083;
-  --text: #101828;
-  --blue: #0b6bdc;
+  --tc-navy: #071b35;
+  --tc-navy-2: #0b2545;
+  --tc-blue: #0b74d1;
+  --tc-blue-dark: #075eb0;
+  --tc-green: #55b82e;
+  --tc-green-dark: #3f941f;
+  --tc-bg: #f5f7fb;
+  --tc-surface: #ffffff;
+  --tc-border: #d7dee8;
+  --tc-text: #0f172a;
+  --tc-muted: #64748b;
+  --bg: var(--tc-bg);
+  --panel: var(--tc-surface);
+  --line: var(--tc-border);
+  --muted: var(--tc-muted);
+  --text: var(--tc-text);
+  --blue: var(--tc-blue);
   --blue-soft: #e8f2ff;
-  --green: #149447;
+  --green: var(--tc-green-dark);
   --red: #e02020;
   --yellow: #e1b400;
   --purple: #7a2fb8;
@@ -83,52 +94,35 @@ button:disabled {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  min-width: 0;
 }
 
-.brand h1 {
-  margin: 0;
+.brand-icon {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.brand-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand-text strong {
+  color: var(--tc-navy);
   font-size: 24px;
-  line-height: 1;
+  font-weight: 800;
   letter-spacing: 0;
 }
 
-.brand p {
+.brand-text span {
   margin: 4px 0 0;
   color: var(--muted);
   font-size: 13px;
-}
-
-.brand-mark {
-  position: relative;
-  width: 42px;
-  height: 42px;
-  border: 2px solid #4f5d6e;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at center, transparent 0 28%, #4f5d6e 29% 31%, transparent 32%),
-    conic-gradient(from -60deg, transparent 0 45deg, #4f5d6e 45deg 47deg, transparent 47deg 360deg);
-}
-
-.brand-mark::before {
-  content: "";
-  position: absolute;
-  left: 7px;
-  right: 7px;
-  bottom: 7px;
-  height: 2px;
-  background: #4f5d6e;
-}
-
-.brand-mark span {
-  position: absolute;
-  left: 19px;
-  top: 11px;
-  width: 2px;
-  height: 14px;
-  transform: rotate(42deg);
-  transform-origin: bottom;
-  background: #111827;
 }
 
 .header-actions,
@@ -556,6 +550,21 @@ select {
 .point-count {
   color: var(--blue);
   font-weight: 800;
+}
+
+@media (max-width: 1366px) {
+  .brand-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .brand-text strong {
+    font-size: 24px;
+  }
+
+  .brand-text span {
+    font-size: 13px;
+  }
 }
 
 @media (max-width: 1280px) {

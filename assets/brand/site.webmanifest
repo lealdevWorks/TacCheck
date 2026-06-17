@@ -1,0 +1,21 @@
+{
+  "name": "TacCheck",
+  "short_name": "TacCheck",
+  "description": "Analise de Disco de Tacografo",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#071b35",
+  "icons": [
+    {
+      "src": "./taccheck-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./taccheck-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -4,18 +4,22 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TacCheck - Análise de Disco de Tacógrafo</title>
-    <link rel="stylesheet" href="./src/styles/main.css?v=0.1.6">
+    <link rel="icon" type="image/x-icon" href="./assets/brand/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/brand/taccheck-icon-32.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="./assets/brand/taccheck-icon-64.png">
+    <link rel="apple-touch-icon" href="./assets/brand/apple-touch-icon.png">
+    <link rel="manifest" href="./assets/brand/site.webmanifest">
+    <meta name="theme-color" content="#071b35">
+    <link rel="stylesheet" href="./src/styles/main.css?v=0.1.7">
   </head>
   <body>
     <div class="app-shell">
       <header class="app-header">
         <div class="brand">
-          <div class="brand-mark" aria-hidden="true">
-            <span></span>
-          </div>
-          <div>
-            <h1>TacCheck</h1>
-            <p>Análise de Disco de Tacógrafo</p>
+          <img src="./assets/brand/taccheck-icon-64.png" alt="TacCheck" class="brand-icon">
+          <div class="brand-text">
+            <strong>TacCheck</strong>
+            <span>Análise de Disco de Tacógrafo</span>
           </div>
         </div>
         <div class="header-actions">
@@ -163,12 +167,12 @@
 
       <footer class="status-bar">
         <span id="statusText">Sistema pronto</span>
-        <span class="version-text">TacCheck v0.1.6</span>
+        <span class="version-text">TacCheck v0.1.7</span>
         <span id="lastCalcText">Último cálculo: -</span>
       </footer>
     </div>
 
     <input id="fileInput" type="file" accept="image/*" hidden>
-    <script type="module" src="./src/ui/app.js?v=0.1.6"></script>
+    <script type="module" src="./src/ui/app.js?v=0.1.7"></script>
   </body>
 </html>
