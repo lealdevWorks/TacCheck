@@ -99,8 +99,8 @@ button:disabled {
 }
 
 .brand-icon {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
   flex: 0 0 auto;
 }
@@ -114,8 +114,8 @@ button:disabled {
 
 .brand-text strong {
   color: var(--tc-navy);
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 26px;
+  font-weight: 900;
   letter-spacing: 0;
 }
 
@@ -559,7 +559,7 @@ select {
   }
 
   .brand-text strong {
-    font-size: 24px;
+    font-size: 25px;
   }
 
   .brand-text span {
