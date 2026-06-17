@@ -57,6 +57,7 @@ const els = {
   markTopButton: $("markTopButton"),
   clearMarksButton: $("clearMarksButton"),
   markedImageButton: $("markedImageButton"),
+  calculateResultButton: $("calculateResultButton"),
   plateInput: $("plateInput"),
   dateInput: $("dateInput"),
   targetSpeedInput: $("targetSpeedInput"),
@@ -104,7 +105,10 @@ function bindEvents() {
   els.fileInput.addEventListener("change", handleFile);
   els.calculateButton.addEventListener("click", triggerCalculate);
   els.calculateButton.addEventListener("pointerup", triggerCalculate);
+  els.calculateResultButton.addEventListener("click", triggerCalculate);
+  els.calculateResultButton.addEventListener("pointerup", triggerCalculate);
   document.addEventListener("click", handleDocumentClick, true);
+  document.addEventListener("keydown", handleDocumentKeydown);
   els.saveButton.addEventListener("click", saveAnalysis);
   els.zoomInButton.addEventListener("click", () => viewer.zoom(1.2));
   els.zoomOutButton.addEventListener("click", () => viewer.zoom(0.82));
@@ -134,9 +138,17 @@ function bindEvents() {
 }
 
 function handleDocumentClick(event) {
-  if (event.target.closest?.("#calculateButton")) {
+  if (event.target.closest?.("#calculateButton, #calculateResultButton")) {
     triggerCalculate(event);
   }
+}
+
+function handleDocumentKeydown(event) {
+  if (event.key !== "Enter") return;
+  if (document.activeElement?.matches?.("textarea, select, button")) return;
+  const readiness = getUiReadiness();
+  if (!readiness.canCalculate) return;
+  triggerCalculate(event);
 }
 
 function clearCalculationError() {
@@ -408,6 +420,7 @@ function updateUi() {
     : "pendente";
   els.resultStepStatus.textContent = state.lastAnalysis ? "calculado" : "aguardando";
   els.calculateButton.disabled = false;
+  els.calculateResultButton.disabled = false;
   updateStepClasses();
   updateModeText();
   updateQuality(readiness);
