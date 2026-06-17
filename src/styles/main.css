@@ -444,14 +444,14 @@ select {
 }
 
 .result-card dl {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
 }
 
 .result-card dl div {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding: 6px 0;
+  padding: 5px 0;
   border-bottom: 1px solid #edf1f7;
   font-size: 13px;
 }
@@ -468,7 +468,7 @@ select {
 .status-badge {
   display: grid;
   place-items: center;
-  min-height: 36px;
+  min-height: 34px;
   border-radius: 999px;
   color: #fff;
   background: var(--red);
@@ -496,7 +496,7 @@ select {
 }
 
 .reason {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   color: #344054;
   text-align: center;
   font-size: 13px;
@@ -505,7 +505,7 @@ select {
 
 .result-calculate-button {
   width: 100%;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .actions-card {

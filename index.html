@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="./assets/brand/apple-touch-icon.png">
     <link rel="manifest" href="./assets/brand/site.webmanifest">
     <meta name="theme-color" content="#071b35">
-    <link rel="stylesheet" href="./src/styles/main.css?v=0.1.8">
+    <link rel="stylesheet" href="./src/styles/main.css?v=0.1.9">
   </head>
   <body>
     <div class="app-shell">
@@ -62,8 +62,8 @@
         <label>
           <span>Critério</span>
           <select id="criterionInput">
-            <option value="gt">Reprovar se &gt; tolerância</option>
-            <option value="gte">Reprovar se ≥ tolerância</option>
+            <option value="gt">&gt; tolerância</option>
+            <option value="gte">≥ tolerância</option>
           </select>
         </label>
         <label class="wide-field">
@@ -167,12 +167,12 @@
 
       <footer class="status-bar">
         <span id="statusText">Sistema pronto</span>
-        <span class="version-text">TacCheck v0.1.8</span>
+        <span class="version-text">TacCheck v0.1.9</span>
         <span id="lastCalcText">Último cálculo: -</span>
       </footer>
     </div>
 
     <input id="fileInput" type="file" accept="image/*" hidden>
-    <script type="module" src="./src/ui/app.js?v=0.1.8"></script>
+    <script type="module" src="./src/ui/app.js?v=0.1.9"></script>
   </body>
 </html>
