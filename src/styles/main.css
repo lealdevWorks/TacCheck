@@ -638,7 +638,9 @@ select {
 
 .version-text {
   color: #667085;
+  font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 #lastCalcText {

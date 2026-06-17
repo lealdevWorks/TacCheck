@@ -43,3 +43,13 @@ A analise foi realizada por conferencia rapida em imagem digital do disco de tac
 
 - `evidencias/tela_demo_52_101_47_740.png`
 - `evidencias/imagem_marcada_demo_52_101_47_740.png`
+
+## Direitos autorais
+
+© 2026 Leal DevWorks. Todos os direitos reservados.
+
+TacCheck é uma ferramenta desenvolvida pela Leal DevWorks para análise técnica de discos de tacógrafo.
+
+Rodapé padrão para relatórios futuros:
+
+Gerado pelo TacCheck — © 2026 Leal DevWorks. Todos os direitos reservados.

@@ -1,7 +1,7 @@
 {
   "name": "TacCheck",
   "short_name": "TacCheck",
-  "description": "Analise de Disco de Tacografo",
+  "description": "TacCheck — Análise de Disco de Tacógrafo",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f5f7fb",

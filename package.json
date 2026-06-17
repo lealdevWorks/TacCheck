@@ -2,6 +2,8 @@
   "name": "taccheck",
   "version": "0.2.0",
   "private": true,
+  "author": "Leal DevWorks",
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "start": "python -m http.server 8765 --bind 127.0.0.1",
