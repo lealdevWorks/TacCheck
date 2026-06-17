@@ -1,14 +1,14 @@
 import { calculateAnalysis } from "../core/analysis.js";
-import { pointForSpeed } from "../core/geometry.js";
+import { buildCalibration, buildRegisterTop, pointForSpeed } from "../core/geometry.js";
 import { getCalculationReadiness } from "../core/readiness.js";
 import { formatNumber, parseNumber } from "../core/tolerance.js";
 import { ImageViewer } from "./viewer.js";
 
 const $ = (id) => document.getElementById(id);
 
-const APP_VERSION = "0.2.0";
+const APP_VERSION = "0.2.1";
 const HISTORY_STORAGE_KEY = "taccheck_analises";
-const METHODOLOGY_TEXT = "A analise foi realizada por conferencia rapida em imagem digital do disco de tacografo, utilizando calibracao em pixels a partir das linhas reais de 40 km/h e 60 km/h impressas no disco. A linha de 50 km/h foi calculada automaticamente como ponto medio entre as referencias 40 km/h e 60 km/h. A velocidade indicada no disco foi obtida pela marcacao do topo do registro da velocidade, conforme criterio operacional de leitura. O resultado foi calculado pela diferenca entre a velocidade indicada no disco e a velocidade maxima real do ensaio, respeitando a tolerancia configurada.";
+const METHODOLOGY_TEXT = "A analise foi realizada por conferencia rapida em imagem digital do disco de tacografo, utilizando calibracao em pixels a partir das linhas reais de 40 km/h e 60 km/h impressas no disco. A linha de 50 km/h foi calculada automaticamente como ponto medio entre as referencias 40 km/h e 60 km/h. A velocidade indicada no disco foi obtida por uma linha de leitura paralela a escala, criada a partir de 1 ponto marcado no topo do registro e ajustada por deslocamento perpendicular. O resultado foi calculado pela diferenca entre a velocidade indicada no disco e a velocidade maxima real do ensaio, respeitando a tolerancia configurada.";
 
 const COLORS = {
   line40: "#149447",
@@ -28,6 +28,7 @@ const state = {
     line60: [],
     registerTop: []
   },
+  readingOffsetPx: 0,
   mode: null,
   contrast: 1,
   showMarks: true,
@@ -72,6 +73,11 @@ const els = {
   modeTitle: $("modeTitle"),
   modeText: $("modeText"),
   qualityText: $("qualityText"),
+  readingOffsetText: $("readingOffsetText"),
+  readingPreviewText: $("readingPreviewText"),
+  readingUpButton: $("readingUpButton"),
+  readingResetButton: $("readingResetButton"),
+  readingDownButton: $("readingDownButton"),
   imageStepStatus: $("imageStepStatus"),
   scaleStepStatus: $("scaleStepStatus"),
   registerStepStatus: $("registerStepStatus"),
@@ -132,9 +138,12 @@ function bindEvents() {
     viewer.draw();
   });
   els.undoButton.addEventListener("click", undoLastMark);
-  els.mark40Button.addEventListener("click", () => setMode("line40"));
-  els.mark60Button.addEventListener("click", () => setMode("line60"));
+  els.mark40Button.addEventListener("click", () => startReferenceMark("line40"));
+  els.mark60Button.addEventListener("click", () => startReferenceMark("line60"));
   els.markTopButton.addEventListener("click", () => setMode("registerTop"));
+  els.readingUpButton.addEventListener("click", (event) => adjustReadingOffset(1, event));
+  els.readingResetButton.addEventListener("click", resetReadingOffset);
+  els.readingDownButton.addEventListener("click", (event) => adjustReadingOffset(-1, event));
   els.clearMarksButton.addEventListener("click", clearMarks);
   els.markedImageButton.addEventListener("click", downloadMarkedImage);
   els.historyList.addEventListener("click", handleHistoryClick);
@@ -178,6 +187,7 @@ function handleFile(event) {
 function setImage(image, name) {
   state.image = image;
   state.imageName = name;
+  state.readingOffsetPx = 0;
   state.lastAnalysis = null;
   state.lastSnapshot = null;
   state.lastError = null;
@@ -196,6 +206,17 @@ function setMode(mode) {
   updateModeText();
 }
 
+function startReferenceMark(mode) {
+  if (state.marks[mode].length >= 2 && state.mode !== mode) {
+    state.marks[mode] = [];
+    state.lastAnalysis = null;
+    state.lastSnapshot = null;
+    state.lastError = null;
+    resetResult();
+  }
+  setMode(mode);
+}
+
 function handleCanvasClick(event) {
   if (event.button !== 0 || viewer.shouldIgnoreClick() || !state.image || !state.mode) return;
   const point = viewer.eventToImage(event);
@@ -205,11 +226,20 @@ function handleCanvasClick(event) {
   }
 
   const bucket = state.marks[state.mode];
-  if (bucket.length >= 3) bucket.shift();
-  bucket.push(point);
+  if (state.mode === "registerTop") {
+    state.marks.registerTop = [point];
+    state.readingOffsetPx = 0;
+  } else {
+    if (bucket.length >= 3) bucket.shift();
+    bucket.push(point);
+  }
 
   const label = modeLabel(state.mode);
-  setStatus(`${label}: ponto ${bucket.length} marcado em coordenada real (${formatNumber(point.x, 1)}, ${formatNumber(point.y, 1)}).`);
+  const count = state.mode === "registerTop" ? 1 : state.marks[state.mode].length;
+  const message = state.mode === "registerTop"
+    ? "Linha criada. Use os controles para ajustar a leitura."
+    : `${label}: ponto ${count} marcado em coordenada real (${formatNumber(point.x, 1)}, ${formatNumber(point.y, 1)}).`;
+  setStatus(message);
   state.lastAnalysis = null;
   state.lastSnapshot = null;
   state.lastError = null;
@@ -241,6 +271,7 @@ function calculate(options = {}) {
       line40Points: state.marks.line40,
       line60Points: state.marks.line60,
       registerTopPoints: state.marks.registerTop,
+      registerTopOffsetPx: state.readingOffsetPx,
       maxSpeed,
       tolerance: parseNumber(els.toleranceInput.value, 4),
       failCriterion: els.criterionInput.value
@@ -249,9 +280,9 @@ function calculate(options = {}) {
     state.lastSnapshot = buildSnapshot(analysis);
     state.lastError = null;
     updateResult(analysis);
-    setStatus("Calculo concluido com a linha de leitura do topo do registro.");
+    setStatus(config.statusMessage || "Calculo concluido com a linha de leitura do topo do registro.");
     els.lastCalcText.textContent = `Ultimo calculo: ${new Date().toLocaleString("pt-BR")}`;
-    resetMaxSpeedInput();
+    if (config.resetMaxSpeedInput !== false) resetMaxSpeedInput();
     viewer.draw();
   } catch (error) {
     state.lastAnalysis = null;
@@ -306,6 +337,56 @@ function getUiReadiness() {
   });
 }
 
+function getReadingPreview() {
+  if (state.marks.line40.length < 2 || state.marks.line60.length < 2 || state.marks.registerTop.length < 1) {
+    return null;
+  }
+
+  try {
+    const calibration = buildCalibration(state.marks.line40, state.marks.line60);
+    const register = buildRegisterTop(state.marks.registerTop, calibration, state.readingOffsetPx);
+    return { calibration, register };
+  } catch {
+    return null;
+  }
+}
+
+function adjustReadingOffset(direction, event) {
+  if (!state.marks.registerTop.length) {
+    setStatus("Marque 1 ponto no topo do registro antes de ajustar.");
+    return;
+  }
+
+  const step = event.shiftKey ? 5 : 1;
+  state.readingOffsetPx += direction * step;
+  handleReadingLineChanged("Linha de leitura ajustada.");
+}
+
+function resetReadingOffset() {
+  if (!state.marks.registerTop.length) return;
+  state.readingOffsetPx = 0;
+  handleReadingLineChanged("Deslocamento da linha de leitura zerado.");
+}
+
+function handleReadingLineChanged(message) {
+  state.lastSnapshot = null;
+  state.lastError = null;
+
+  if (state.lastAnalysis) {
+    calculate({
+      maxSpeed: state.lastAnalysis.result.maxSpeed,
+      resetMaxSpeedInput: false,
+      statusMessage: message
+    });
+    return;
+  }
+
+  resetResult();
+  setStatus(message);
+  updateUi();
+  viewer.draw();
+}
+
 function drawScene(ctx, viewport, rect) {
   if (!state.image) return;
 
@@ -330,6 +411,11 @@ function drawScene(ctx, viewport, rect) {
 
   if (state.lastAnalysis) {
     drawEvidence(ctx, viewport, state.lastAnalysis, rect);
+  } else {
+    const preview = getReadingPreview();
+    if (preview) {
+      drawLineAtCenter(ctx, preview.calibration, preview.register.line.center, COLORS.register, "linha de leitura", false, 34, 140);
+    }
   }
   ctx.restore();
 }
@@ -382,6 +468,10 @@ function drawPointSet(ctx, points, color, label) {
 
 function drawSpeedLine(ctx, calibration, speed, color, label, dashed, labelOffsetY = 0, labelOffsetX = 0) {
   const center = pointForSpeed(calibration, speed);
+  drawLineAtCenter(ctx, calibration, center, color, label, dashed, labelOffsetY, labelOffsetX);
+}
+
+function drawLineAtCenter(ctx, calibration, center, color, label, dashed, labelOffsetY = 0, labelOffsetX = 0) {
   const half = Math.max(state.image.naturalWidth, state.image.naturalHeight);
   const a = {
     x: center.x - calibration.direction.x * half,
@@ -422,14 +512,17 @@ function updateUi() {
   els.imageStepStatus.textContent = state.image ? "carregada" : "pendente";
   els.scaleStepStatus.textContent = `${state.marks.line40.length}/2 40 | ${state.marks.line60.length}/2 60`;
   els.registerStepStatus.textContent = state.marks.registerTop.length
-    ? `${state.marks.registerTop.length}/3 topo`
+    ? "1/1 topo"
     : "pendente";
+  els.mark40Button.textContent = state.marks.line40.length >= 2 ? "Remarcar 40" : "Marcar 40";
+  els.mark60Button.textContent = state.marks.line60.length >= 2 ? "Remarcar 60" : "Marcar 60";
   els.resultStepStatus.textContent = state.lastAnalysis || state.lastSnapshot ? "calculado" : "aguardando";
   els.calculateButton.disabled = false;
   els.calculateResultButton.disabled = false;
   updateStepClasses();
   updateModeText();
   updateQuality(readiness);
+  updateReadingControls();
   if (!state.lastAnalysis && !state.lastSnapshot) updateResultPlaceholder(readiness);
 }
 
@@ -458,7 +551,7 @@ function updateModeText() {
   const texts = {
     line40: ["Marcar 40 km/h", "Clique em 2 pontos na linha 40. Um 3o ponto melhora a reta."],
     line60: ["Marcar 60 km/h", "Clique em 2 pontos na linha 60. A escala usa 40 -> 60."],
-    registerTop: ["Marcar topo", "Clique no topo do registro. Use 1 ponto, ou 2 a 3 para media."]
+    registerTop: ["Marcar topo", "Clique em 1 ponto onde esta o topo do registro."]
   };
   const [title, text] = texts[state.mode] || ["Como marcar", "Carregue a imagem. Marque 40, 60 e o topo do registro."];
   els.modeTitle.textContent = title;
@@ -468,7 +561,7 @@ function updateModeText() {
 function updateQuality(readiness = getUiReadiness()) {
   if (state.lastAnalysis) {
     const cal = state.lastAnalysis.calibration;
-    els.qualityText.textContent = `calculado | ${cal.quality} | ${formatNumber(cal.pixelsPerKm, 2)} px/km`;
+    els.qualityText.textContent = `calculado | linha paralela | ${cal.quality} | ${formatNumber(cal.pixelsPerKm, 2)} px/km`;
     return;
   }
   if (!readiness.hasScale) {
@@ -483,8 +576,28 @@ function updateQuality(readiness = getUiReadiness()) {
     els.qualityText.textContent = "topo marcado | aguardando tolerancia";
     return;
   }
-  const precision = state.marks.registerTop.length === 1 ? "precisao basica" : "precisao melhor";
-  els.qualityText.textContent = `pronto para calcular | ${precision}`;
+  els.qualityText.textContent = "pronto para calcular | linha paralela";
+}
+
+function updateReadingControls() {
+  const preview = getReadingPreview();
+  els.readingOffsetText.textContent = formatOffsetPx(state.readingOffsetPx);
+  els.readingUpButton.disabled = !state.marks.registerTop.length;
+  els.readingResetButton.disabled = !state.marks.registerTop.length || state.readingOffsetPx === 0;
+  els.readingDownButton.disabled = !state.marks.registerTop.length;
+
+  if (!state.marks.registerTop.length) {
+    els.readingPreviewText.textContent = "Clique em 1 ponto no topo do registro.";
+  } else if (!preview) {
+    els.readingPreviewText.textContent = "Linha criada. Marque 40 e 60 para calcular a leitura.";
+  } else {
+    els.readingPreviewText.textContent = `Vel. indicada parcial: ${formatNumber(preview.register.indicatedSpeed)} km/h`;
+  }
+}
+
+function formatOffsetPx(value) {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatNumber(value, 1)} px`;
 }
 
 function updateResultPlaceholder(readiness) {
@@ -565,6 +678,7 @@ function buildSnapshot(analysis) {
     pontos_linha_40: points.line40,
     pontos_linha_60: points.line60,
     pontos_topo_registro: points.registerTop,
+    deslocamento_linha_leitura_px: state.readingOffsetPx,
     data_hora_calculo: calculatedAt,
     versao_taccheck: APP_VERSION,
     pontos: points,
@@ -698,6 +812,7 @@ function handleHistoryClick(event) {
 function openSavedAnalysis(record) {
   const points = pointsFromRecord(record);
   state.marks = points;
+  state.readingOffsetPx = parseNumber(record.deslocamento_linha_leitura_px, 0);
   state.lastError = null;
   state.lastSnapshot = record;
   state.lastAnalysis = buildAnalysisFromRecord(record, points);
@@ -728,6 +843,7 @@ function buildAnalysisFromRecord(record, points) {
       line40Points: points.line40,
       line60Points: points.line60,
       registerTopPoints: points.registerTop,
+      registerTopOffsetPx: state.readingOffsetPx,
       maxSpeed: parseNumber(record.velocidade_maxima_ensaio, Number.NaN),
       tolerance: parseNumber(record.tolerancia, Number.NaN),
       failCriterion: record.criterio || record.criterio_reprovacao || "gt"
@@ -769,10 +885,11 @@ function deleteSavedAnalysis(id) {
 }
 
 function pointsFromRecord(record) {
+  const registerTop = structuredClone(record.pontos_topo_registro || record.pontos?.registerTop || []);
   return {
     line40: structuredClone(record.pontos_linha_40 || record.pontos?.line40 || []),
     line60: structuredClone(record.pontos_linha_60 || record.pontos?.line60 || []),
-    registerTop: structuredClone(record.pontos_topo_registro || record.pontos?.registerTop || [])
+    registerTop: registerTop.length ? [registerTop[0]] : []
   };
 }
 
@@ -871,6 +988,7 @@ function clearMarks(resetStatus = true) {
     line60: [],
     registerTop: []
   };
+  state.readingOffsetPx = 0;
   state.mode = null;
   state.lastAnalysis = null;
   state.lastSnapshot = null;
@@ -886,6 +1004,7 @@ function undoLastMark() {
   for (const key of order) {
     if (state.marks[key].length) {
       state.marks[key].pop();
+      if (key === "registerTop") state.readingOffsetPx = 0;
       state.lastAnalysis = null;
       state.lastSnapshot = null;
       state.lastError = null;
@@ -963,7 +1082,8 @@ function loadDemo() {
     setImage(image, "demo_52_101_47_740.png");
     state.marks.line40 = [{ x: 80, y: 620 }, { x: 1120, y: 620 }];
     state.marks.line60 = [{ x: 80, y: 220 }, { x: 1120, y: 220 }];
-    state.marks.registerTop = [{ x: 350, y: 465.2 }, { x: 605, y: 465.2 }, { x: 860, y: 465.2 }];
+    state.marks.registerTop = [{ x: 605, y: 465.2 }];
+    state.readingOffsetPx = 0;
     calculate({ maxSpeed: 52.101 });
   };
   image.src = canvas.toDataURL("image/png");

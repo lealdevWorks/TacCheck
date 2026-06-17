@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="./assets/brand/apple-touch-icon.png">
     <link rel="manifest" href="./assets/brand/site.webmanifest">
     <meta name="theme-color" content="#071b35">
-    <link rel="stylesheet" href="./src/styles/main.css?v=0.2.0">
+    <link rel="stylesheet" href="./src/styles/main.css?v=0.2.1">
   </head>
   <body>
     <div class="app-shell">
@@ -141,6 +141,18 @@
               <span>Calibração</span>
               <strong id="qualityText">aguardando escala</strong>
             </div>
+            <div class="reading-controls">
+              <div class="reading-control-head">
+                <span>Ajuste fino do topo</span>
+                <strong id="readingOffsetText">0 px</strong>
+              </div>
+              <div class="reading-control-actions">
+                <button id="readingUpButton" type="button" title="Mover a linha para cima. Shift = 5 px">-</button>
+                <button id="readingResetButton" type="button" title="Zerar deslocamento">0</button>
+                <button id="readingDownButton" type="button" title="Mover a linha para baixo. Shift = 5 px">+</button>
+              </div>
+              <p id="readingPreviewText">Clique em 1 ponto no topo do registro.</p>
+            </div>
           </section>
 
           <section class="card result-card">
@@ -175,12 +187,12 @@
 
       <footer class="status-bar">
         <span id="statusText">Sistema pronto</span>
-        <span class="version-text">TacCheck v0.2.0 · © 2026 Leal DevWorks</span>
+        <span class="version-text">TacCheck v0.2.1 · © 2026 Leal DevWorks</span>
         <span id="lastCalcText">Último cálculo: -</span>
       </footer>
     </div>
 
     <input id="fileInput" type="file" accept="image/*" hidden>
-    <script type="module" src="./src/ui/app.js?v=0.2.0"></script>
+    <script type="module" src="./src/ui/app.js?v=0.2.1"></script>
   </body>
 </html>

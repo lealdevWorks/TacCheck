@@ -83,7 +83,7 @@ test("analise aceita um ponto simples no topo do registro", () => {
   assert.equal(analysis.result.result, "APROVADO");
 });
 
-test("analise usa linha media com tres pontos no topo do registro", () => {
+test("analise usa apenas o ponto inicial do topo do registro", () => {
   const line40 = [{ x: 0, y: 300 }, { x: 800, y: 300 }];
   const line60 = [{ x: 0, y: 100 }, { x: 800, y: 100 }];
   const calibration = buildCalibration(line40, line60);
@@ -93,7 +93,7 @@ test("analise usa linha media com tres pontos no topo do registro", () => {
     line40Points: line40,
     line60Points: line60,
     registerTopPoints: [
-      { x: 100, y: top.y - 1 },
+      top,
       { x: 400, y: top.y },
       { x: 700, y: top.y + 1 }
     ],
@@ -103,4 +103,32 @@ test("analise usa linha media com tres pontos no topo do registro", () => {
 
   close(analysis.register.indicatedSpeed, 47.74);
   assert.equal(analysis.result.result, "REPROVADO");
+});
+
+test("deslocamento do topo move a linha paralela sem mudar o angulo", () => {
+  const line40 = [{ x: 0, y: 300 }, { x: 800, y: 380 }];
+  const line60 = [{ x: 0, y: 100 }, { x: 800, y: 180 }];
+  const calibration = buildCalibration(line40, line60);
+  const top = pointForSpeed(calibration, 48);
+
+  const base = calculateAnalysis({
+    line40Points: line40,
+    line60Points: line60,
+    registerTopPoints: [top],
+    registerTopOffsetPx: 0,
+    maxSpeed: 52,
+    tolerance: 4
+  });
+  const adjusted = calculateAnalysis({
+    line40Points: line40,
+    line60Points: line60,
+    registerTopPoints: [top],
+    registerTopOffsetPx: 10,
+    maxSpeed: 52,
+    tolerance: 4
+  });
+
+  close(base.register.indicatedSpeed, 48);
+  close(adjusted.register.indicatedSpeed, 48 + (10 / calibration.distance) * 20, 0.001);
+  close(adjusted.register.line.angleDegrees, base.register.line.angleDegrees, 0.001);
 });

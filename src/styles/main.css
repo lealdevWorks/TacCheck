@@ -443,6 +443,49 @@ select {
   color: var(--text);
 }
 
+.reading-controls {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #edf1f7;
+}
+
+.reading-control-head,
+.reading-control-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.reading-control-head span,
+.reading-controls p {
+  color: #475467;
+  font-size: 12px;
+}
+
+.reading-control-head strong {
+  color: var(--tc-navy);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.reading-control-actions button {
+  flex: 1;
+  min-height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--tc-blue-dark);
+  background: #fff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.reading-controls p {
+  margin: 0;
+}
+
 .result-card dl {
   margin: 0 0 8px;
 }

@@ -34,7 +34,10 @@ export class ImageViewer {
     }, { passive: false });
 
     this.canvas.addEventListener("pointerdown", (event) => {
-      if (event.button === 2 || this.spaceDown) {
+      if (!this.image) return;
+      const shouldPan = event.button === 1 || event.button === 2 || (event.button === 0 && this.spaceDown);
+      if (shouldPan) {
+        event.preventDefault();
         this.dragging = true;
         this.dragStart = {
           x: event.clientX,
@@ -43,6 +46,7 @@ export class ImageViewer {
           offsetY: this.viewport.offsetY
         };
         this.panMoved = false;
+        this.updateCursor();
         this.canvas.setPointerCapture(event.pointerId);
       }
     });
@@ -66,6 +70,7 @@ export class ImageViewer {
       this.dragging = false;
       this.dragStart = null;
       this.panMoved = false;
+      this.updateCursor();
       try {
         this.canvas.releasePointerCapture(event.pointerId);
       } catch {
@@ -73,14 +78,40 @@ export class ImageViewer {
       }
     });
 
+    this.canvas.addEventListener("pointercancel", () => {
+      this.dragging = false;
+      this.dragStart = null;
+      this.panMoved = false;
+      this.updateCursor();
+    });
+
     this.canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+    this.canvas.addEventListener("auxclick", (event) => {
+      if (event.button === 1) event.preventDefault();
+    });
 
     window.addEventListener("keydown", (event) => {
-      if (event.code === "Space") this.spaceDown = true;
+      if (event.code === "Space") {
+        this.spaceDown = true;
+        this.updateCursor();
+      }
     });
     window.addEventListener("keyup", (event) => {
-      if (event.code === "Space") this.spaceDown = false;
+      if (event.code === "Space") {
+        this.spaceDown = false;
+        this.updateCursor();
+      }
     });
+  }
+
+  updateCursor() {
+    if (this.dragging) {
+      this.canvas.style.cursor = "grabbing";
+    } else if (this.spaceDown) {
+      this.canvas.style.cursor = "grab";
+    } else {
+      this.canvas.style.cursor = "";
+    }
   }
 
   resize() {

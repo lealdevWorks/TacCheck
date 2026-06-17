@@ -142,29 +142,30 @@ export function speedFromPoint(calibration, point) {
   return 40 + (projected / calibration.distance) * 20;
 }
 
-export function buildRegisterTop(topPoints, calibration) {
+export function buildRegisterTop(topPoints, calibration, offsetPx = 0) {
   if (!Array.isArray(topPoints) || topPoints.length < 1) {
     throw new Error("O topo do registro precisa de pelo menos 1 ponto.");
   }
 
   const points = topPoints.map((point) => makePoint(point.x, point.y));
-  const line = points.length >= 2
-    ? fitLine(points)
-    : {
-        points,
-        center: points[0],
-        direction: calibration.direction,
-        normal: calibration.normal,
-        angleDegrees: calibration.line40.angleDegrees,
-        meanDeviation: 0,
-        maxDeviation: 0
-      };
+  const offset = Number(offsetPx) || 0;
+  const center = add(points[0], scale(calibration.normal, offset));
+  const line = {
+    points: [center],
+    center,
+    direction: calibration.direction,
+    normal: calibration.normal,
+    angleDegrees: Math.atan2(calibration.direction.y, calibration.direction.x) * 180 / Math.PI,
+    meanDeviation: 0,
+    maxDeviation: 0
+  };
   const projection = dot(sub(line.center, calibration.origin), calibration.normal);
   const readingPoint = add(calibration.origin, scale(calibration.normal, projection));
 
   return {
     points,
     line,
+    offsetPx: offset,
     projection,
     readingPoint,
     indicatedSpeed: speedFromPoint(calibration, readingPoint)
