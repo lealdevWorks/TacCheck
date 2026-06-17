@@ -491,6 +491,11 @@ select {
   font-size: 15px;
 }
 
+.status-badge.error {
+  background: var(--red);
+  font-size: 15px;
+}
+
 .status-badge.muted {
   background: #64748b;
   font-size: 14px;

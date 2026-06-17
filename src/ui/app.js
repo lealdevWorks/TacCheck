@@ -30,8 +30,11 @@ const state = {
   contrast: 1,
   showMarks: true,
   lastAnalysis: null,
-  lastSnapshot: null
+  lastSnapshot: null,
+  lastError: null
 };
+
+let lastCalculateTriggerAt = 0;
 
 const els = {
   fileInput: $("fileInput"),
@@ -86,6 +89,7 @@ init();
 
 function init() {
   els.dateInput.valueAsDate = new Date(2024, 4, 24);
+  window.TacCheckCalculate = triggerCalculate;
   bindEvents();
   updateUi();
 
@@ -98,7 +102,9 @@ function init() {
 function bindEvents() {
   els.loadImageButton.addEventListener("click", () => els.fileInput.click());
   els.fileInput.addEventListener("change", handleFile);
-  els.calculateButton.addEventListener("click", calculate);
+  els.calculateButton.addEventListener("click", triggerCalculate);
+  els.calculateButton.addEventListener("pointerup", triggerCalculate);
+  document.addEventListener("click", handleDocumentClick, true);
   els.saveButton.addEventListener("click", saveAnalysis);
   els.zoomInButton.addEventListener("click", () => viewer.zoom(1.2));
   els.zoomOutButton.addEventListener("click", () => viewer.zoom(0.82));
@@ -123,8 +129,19 @@ function bindEvents() {
   els.clearMarksButton.addEventListener("click", clearMarks);
   els.markedImageButton.addEventListener("click", downloadMarkedImage);
   els.canvas.addEventListener("click", handleCanvasClick);
-  els.toleranceInput.addEventListener("input", updateUi);
-  els.maxSpeedInput.addEventListener("input", updateUi);
+  els.toleranceInput.addEventListener("input", clearCalculationError);
+  els.maxSpeedInput.addEventListener("input", clearCalculationError);
+}
+
+function handleDocumentClick(event) {
+  if (event.target.closest?.("#calculateButton")) {
+    triggerCalculate(event);
+  }
+}
+
+function clearCalculationError() {
+  state.lastError = null;
+  updateUi();
 }
 
 function handleFile(event) {
@@ -145,6 +162,7 @@ function setImage(image, name) {
   state.imageName = name;
   state.lastAnalysis = null;
   state.lastSnapshot = null;
+  state.lastError = null;
   clearMarks(false);
   viewer.setImage(image);
   els.emptyState.style.display = "none";
@@ -176,9 +194,23 @@ function handleCanvasClick(event) {
   setStatus(`${label}: ponto ${bucket.length} marcado em coordenada real (${formatNumber(point.x, 1)}, ${formatNumber(point.y, 1)}).`);
   state.lastAnalysis = null;
   state.lastSnapshot = null;
+  state.lastError = null;
   resetResult();
   updateUi();
   viewer.draw();
+}
+
+function triggerCalculate(event) {
+  if (event) {
+    if (event.__taccheckCalculateHandled) return;
+    event.__taccheckCalculateHandled = true;
+    event.preventDefault();
+  }
+
+  const now = Date.now();
+  if (now - lastCalculateTriggerAt < 250) return;
+  lastCalculateTriggerAt = now;
+  calculate();
 }
 
 function calculate(options = {}) {
@@ -197,13 +229,18 @@ function calculate(options = {}) {
     });
     state.lastAnalysis = analysis;
     state.lastSnapshot = buildSnapshot(analysis);
+    state.lastError = null;
     updateResult(analysis);
     setStatus("Calculo concluido com a linha de leitura do topo do registro.");
     els.lastCalcText.textContent = `Ultimo calculo: ${new Date().toLocaleString("pt-BR")}`;
     resetMaxSpeedInput();
     viewer.draw();
   } catch (error) {
+    state.lastAnalysis = null;
+    state.lastSnapshot = null;
+    state.lastError = error.message;
     setStatus(error.message);
+    showCalculationError(error.message);
   }
   updateUi();
 }
@@ -439,6 +476,11 @@ function updateResultPlaceholder(readiness) {
   els.upperLimitOutput.textContent = "-";
   els.toleranceOutput.textContent = "-";
 
+  if (state.lastError) {
+    showCalculationError(state.lastError);
+    return;
+  }
+
   if (readiness.canCalculate) {
     els.statusBadge.textContent = "Pronto para calcular";
     els.statusBadge.className = "status-badge ready";
@@ -449,6 +491,12 @@ function updateResultPlaceholder(readiness) {
   els.statusBadge.textContent = "Aguardando calculo";
   els.statusBadge.className = "status-badge muted";
   els.reasonOutput.textContent = readinessMessage(readiness.reason);
+}
+
+function showCalculationError(message) {
+  els.statusBadge.textContent = "Nao calculou";
+  els.statusBadge.className = "status-badge error";
+  els.reasonOutput.textContent = message;
 }
 
 function readinessMessage(reason) {
@@ -573,6 +621,7 @@ function clearMarks(resetStatus = true) {
   state.mode = null;
   state.lastAnalysis = null;
   state.lastSnapshot = null;
+  state.lastError = null;
   if (resetStatus) setStatus("Marcacoes limpas.");
   resetResult();
   updateUi();
@@ -586,6 +635,7 @@ function undoLastMark() {
       state.marks[key].pop();
       state.lastAnalysis = null;
       state.lastSnapshot = null;
+      state.lastError = null;
       setStatus(`Ultimo ponto removido de ${modeLabel(key)}.`);
       resetResult();
       updateUi();
