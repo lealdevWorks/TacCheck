@@ -124,7 +124,7 @@ const viewer = new ImageViewer(els.canvas, els.canvasWrap, drawScene);
 init();
 
 function init() {
-  els.dateInput.valueAsDate = new Date(2024, 4, 24);
+  els.dateInput.value = todayInputDate();
   window.TacCheckCalculate = triggerCalculate;
   bindEvents();
   updateUi();
@@ -134,6 +134,11 @@ function init() {
   if (params.get("demo") === "1") {
     loadDemo();
   }
+}
+
+function todayInputDate(date = new Date()) {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 10);
 }
 
 function bindEvents() {
