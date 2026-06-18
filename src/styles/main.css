@@ -1711,26 +1711,118 @@ html[data-theme="dark"] .image-viewer {
   align-items: center;
 }
 
-.theme-setting {
-  display: grid;
-  gap: 3px;
-  min-width: 168px;
+.settings-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
-.theme-setting span {
-  margin: 0;
-  color: #b6c3d5;
-  font-size: 11px;
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border: 1px solid rgba(94, 126, 168, 0.42);
+  border-radius: 8px;
+  color: #d8e3f2;
+  background:
+    linear-gradient(180deg, rgba(22, 45, 73, 0.94), rgba(13, 28, 48, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055), 0 10px 24px rgba(0, 0, 0, 0.18);
+  font-size: 18px;
   font-weight: 800;
-  line-height: 1;
 }
 
-.theme-setting select {
-  height: 40px;
-  min-width: 168px;
-  padding-right: 30px;
+.icon-button:hover,
+.icon-button[aria-expanded="true"] {
+  border-color: rgba(77, 177, 255, 0.6);
+  color: #ffffff;
+  background:
+    linear-gradient(180deg, rgba(28, 61, 97, 0.98), rgba(15, 35, 59, 0.98));
+}
+
+.settings-button::before {
+  content: "\2699";
+  line-height: 1;
+  font-family: "Segoe UI Symbol", "Segoe UI", Arial, sans-serif;
+}
+
+.settings-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  width: 250px;
+  padding: 10px;
+  border: 1px solid rgba(92, 124, 163, 0.38);
+  border-radius: 10px;
+  color: #e5edf7;
+  background:
+    linear-gradient(180deg, rgba(17, 37, 62, 0.98), rgba(9, 22, 38, 0.99));
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.settings-popover[hidden] {
+  display: none;
+}
+
+.settings-popover strong {
+  display: block;
+  margin-bottom: 10px;
+  color: #f4f8ff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.settings-group span {
+  display: block;
+  margin-bottom: 6px;
+  color: #9fb0c5;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.settings-group button {
+  position: relative;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 4px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 0 10px 0 30px;
+  color: #d8e3f2;
+  background: transparent;
+  text-align: left;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
+}
+
+.settings-group button::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(159, 176, 197, 0.55);
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+
+.settings-group button:hover {
+  color: #ffffff;
+  background: rgba(22, 45, 73, 0.82);
+}
+
+.settings-group button.is-active {
+  border-color: rgba(48, 144, 255, 0.72);
+  color: #ffffff;
+  background: rgba(11, 116, 209, 0.32);
+}
+
+.settings-group button.is-active::before {
+  border-color: #4bb0ff;
+  background: radial-gradient(circle at center, #4bb0ff 0 42%, transparent 46%);
 }
 
 .header-actions .button {
@@ -2248,9 +2340,7 @@ html[data-theme="auto"] .brand-text strong {
 }
 
 html[data-theme="light"] .brand-text span,
-html[data-theme="light"] .theme-setting span,
-html[data-theme="auto"] .brand-text span,
-html[data-theme="auto"] .theme-setting span {
+html[data-theme="auto"] .brand-text span {
   color: var(--theme-muted-2);
 }
 
@@ -2520,28 +2610,17 @@ html[data-theme="auto"] #lastCalcText {
 }
 
 @media (max-width: 1400px) {
-  .theme-setting {
-    min-width: 150px;
-  }
-
-  .theme-setting select {
-    min-width: 150px;
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 1280px) {
-  .theme-setting {
-    min-width: 134px;
-  }
-
-  .theme-setting select {
-    min-width: 134px;
+  .icon-button {
+    width: 38px;
+    min-width: 38px;
+    min-height: 38px;
   }
 }
 
 @media (max-height: 850px) {
-  .theme-setting select {
-    height: 36px;
+  .icon-button {
+    width: 36px;
+    min-width: 36px;
+    min-height: 36px;
   }
 }

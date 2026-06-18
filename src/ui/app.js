@@ -63,7 +63,8 @@ const els = {
   openCameraButton: $("openCameraButton"),
   calculateButton: $("calculateButton"),
   saveButton: $("saveButton"),
-  themeSelect: $("themeSelect"),
+  settingsButton: $("settingsButton"),
+  settingsPopover: $("settingsPopover"),
   zoomInButton: $("zoomInButton"),
   zoomOutButton: $("zoomOutButton"),
   fitButton: $("fitButton"),
@@ -184,6 +185,7 @@ function saveTheme(theme) {
   const normalizedTheme = normalizeTheme(theme);
   setCookie(THEME_COOKIE_NAME, normalizedTheme);
   applyTheme(normalizedTheme);
+  syncThemeControls(normalizedTheme);
 }
 
 function loadSavedTheme() {
@@ -194,14 +196,21 @@ function initThemeSettings() {
   const theme = loadSavedTheme();
 
   applyTheme(theme);
+  syncThemeControls(theme);
 
-  if (!els.themeSelect) {
+  if (!els.settingsButton || !els.settingsPopover) {
     return;
   }
 
-  els.themeSelect.value = theme;
-  els.themeSelect.addEventListener("change", () => {
-    saveTheme(els.themeSelect.value);
+  els.settingsButton.addEventListener("click", () => {
+    toggleSettingsPopover();
+  });
+
+  getThemeOptionButtons().forEach((button) => {
+    button.addEventListener("click", () => {
+      saveTheme(button.dataset.themeOption);
+      closeSettingsPopover();
+    });
   });
 
   if (window.matchMedia) {
@@ -212,6 +221,42 @@ function initThemeSettings() {
       }
     });
   }
+}
+
+function getThemeOptionButtons() {
+  return Array.from(document.querySelectorAll("[data-theme-option]"));
+}
+
+function syncThemeControls(theme) {
+  const normalizedTheme = normalizeTheme(theme);
+
+  getThemeOptionButtons().forEach((button) => {
+    const isActive = button.dataset.themeOption === normalizedTheme;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
+function toggleSettingsPopover() {
+  if (els.settingsPopover.hidden) {
+    openSettingsPopover();
+  } else {
+    closeSettingsPopover();
+  }
+}
+
+function openSettingsPopover() {
+  els.settingsPopover.hidden = false;
+  els.settingsButton.setAttribute("aria-expanded", "true");
+}
+
+function closeSettingsPopover() {
+  if (!els.settingsPopover || els.settingsPopover.hidden) {
+    return;
+  }
+
+  els.settingsPopover.hidden = true;
+  els.settingsButton?.setAttribute("aria-expanded", "false");
 }
 
 function todayInputDate(date = new Date()) {
@@ -272,9 +317,18 @@ function handleDocumentClick(event) {
   if (event.target.closest?.("#calculateButton, #calculateResultButton")) {
     triggerCalculate(event);
   }
+
+  if (!event.target.closest?.(".settings-menu")) {
+    closeSettingsPopover();
+  }
 }
 
 function handleDocumentKeydown(event) {
+  if (event.key === "Escape") {
+    closeSettingsPopover();
+    return;
+  }
+
   if (event.key !== "Enter") return;
   if (document.activeElement?.matches?.("textarea, select, button")) return;
   const readiness = getUiReadiness();

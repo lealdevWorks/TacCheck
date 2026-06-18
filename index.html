@@ -30,7 +30,7 @@
         document.documentElement.setAttribute("data-theme", theme);
       })();
     </script>
-    <link rel="stylesheet" href="./src/styles/main.css?v=0.2.8">
+    <link rel="stylesheet" href="./src/styles/main.css?v=0.2.9">
   </head>
   <body>
     <div class="app-shell">
@@ -43,18 +43,22 @@
           </div>
         </div>
         <div class="header-actions">
-          <label class="theme-setting">
-            <span>Tema da interface</span>
-            <select id="themeSelect" aria-label="Tema da interface">
-              <option value="auto">Automático pelo sistema</option>
-              <option value="light">Claro</option>
-              <option value="dark">Escuro</option>
-            </select>
-          </label>
           <button id="loadImageButton" type="button" class="button button-light">Carregar imagem</button>
           <button id="openCameraButton" type="button" class="button button-light">Usar câmera</button>
           <button id="calculateButton" type="button" class="button button-primary" onclick="window.TacCheckCalculate && window.TacCheckCalculate(event)">Calcular</button>
           <button id="saveButton" type="button" class="button button-success">Salvar análise</button>
+          <div class="settings-menu">
+            <button id="settingsButton" type="button" class="icon-button settings-button" title="Configurações" aria-label="Configurações" aria-expanded="false" aria-controls="settingsPopover"></button>
+            <div id="settingsPopover" class="settings-popover" hidden>
+              <strong>Configurações</strong>
+              <div class="settings-group" role="group" aria-label="Tema da interface">
+                <span>Tema da interface</span>
+                <button type="button" data-theme-option="auto">Automático pelo sistema</button>
+                <button type="button" data-theme-option="light">Claro</button>
+                <button type="button" data-theme-option="dark">Escuro</button>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -255,6 +259,6 @@
     </div>
 
     <input id="fileInput" type="file" accept="image/*" hidden>
-    <script type="module" src="./src/ui/app.js?v=0.2.6"></script>
+    <script type="module" src="./src/ui/app.js?v=0.2.7"></script>
   </body>
 </html>
