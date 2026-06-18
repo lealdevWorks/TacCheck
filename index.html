@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="./assets/brand/apple-touch-icon.png">
     <link rel="manifest" href="./assets/brand/site.webmanifest">
     <meta name="theme-color" content="#071b35">
-    <link rel="stylesheet" href="./src/styles/main.css?v=0.2.1">
+    <link rel="stylesheet" href="./src/styles/main.css?v=0.2.2">
   </head>
   <body>
     <div class="app-shell">
@@ -24,6 +24,7 @@
         </div>
         <div class="header-actions">
           <button id="loadImageButton" type="button" class="button button-light">Carregar imagem</button>
+          <button id="openCameraButton" type="button" class="button button-light">Usar câmera</button>
           <button id="calculateButton" type="button" class="button button-primary" onclick="window.TacCheckCalculate && window.TacCheckCalculate(event)">Calcular</button>
           <button id="saveButton" type="button" class="button button-success">Salvar análise</button>
         </div>
@@ -187,12 +188,45 @@
 
       <footer class="status-bar">
         <span id="statusText">Sistema pronto</span>
-        <span class="version-text">TacCheck v0.2.1 · © 2026 Leal DevWorks</span>
+        <span class="version-text">TacCheck v0.2.2 · © 2026 Leal DevWorks</span>
         <span id="lastCalcText">Último cálculo: -</span>
       </footer>
     </div>
 
+    <div id="cameraModal" class="camera-modal" hidden>
+      <div class="camera-dialog" role="dialog" aria-modal="true" aria-labelledby="cameraTitle">
+        <div class="camera-header">
+          <div>
+            <h2 id="cameraTitle">Captura pela câmera</h2>
+            <p id="cameraStatusText">Use boa iluminação, mantenha o disco plano e evite reflexos.</p>
+          </div>
+          <button id="closeCameraButton" type="button" class="camera-icon-button" title="Fechar câmera">×</button>
+        </div>
+
+        <div class="camera-settings">
+          <label>
+            <span>Câmera padrão</span>
+            <select id="cameraSelect"></select>
+          </label>
+          <button id="refreshCamerasButton" type="button" class="button button-light">Atualizar câmeras</button>
+        </div>
+
+        <div class="camera-stage">
+          <video id="cameraVideo" autoplay playsinline muted></video>
+          <img id="cameraPreview" alt="Foto capturada pela câmera" hidden>
+          <div class="camera-grid" aria-hidden="true"></div>
+        </div>
+
+        <div class="camera-actions">
+          <button id="capturePhotoButton" type="button" class="button button-primary">Tirar foto</button>
+          <button id="usePhotoButton" type="button" class="button button-success" hidden>Usar esta foto</button>
+          <button id="retakePhotoButton" type="button" class="button button-light" hidden>Tirar outra foto</button>
+          <button id="cancelCameraButton" type="button" class="button button-light">Fechar câmera</button>
+        </div>
+      </div>
+    </div>
+
     <input id="fileInput" type="file" accept="image/*" hidden>
-    <script type="module" src="./src/ui/app.js?v=0.2.1"></script>
+    <script type="module" src="./src/ui/app.js?v=0.2.2"></script>
   </body>
 </html>

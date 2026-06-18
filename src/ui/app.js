@@ -2,11 +2,19 @@ import { calculateAnalysis } from "../core/analysis.js";
 import { buildCalibration, buildRegisterTop, pointForSpeed } from "../core/geometry.js";
 import { getCalculationReadiness } from "../core/readiness.js";
 import { formatNumber, parseNumber } from "../core/tolerance.js";
+import {
+  buildCameraConstraints,
+  createCameraFileName,
+  loadDefaultCamera,
+  normalizeVideoDevices,
+  saveDefaultCamera,
+  selectPreferredCamera
+} from "./camera.js";
 import { ImageViewer } from "./viewer.js";
 
 const $ = (id) => document.getElementById(id);
 
-const APP_VERSION = "0.2.1";
+const APP_VERSION = "0.2.2";
 const HISTORY_STORAGE_KEY = "taccheck_analises";
 const METHODOLOGY_TEXT = "A analise foi realizada por conferencia rapida em imagem digital do disco de tacografo, utilizando calibracao em pixels a partir das linhas reais de 40 km/h e 60 km/h impressas no disco. A linha de 50 km/h foi calculada automaticamente como ponto medio entre as referencias 40 km/h e 60 km/h. A velocidade indicada no disco foi obtida por uma linha de leitura paralela a escala, criada a partir de 1 ponto marcado no topo do registro e ajustada por deslocamento perpendicular. O resultado foi calculado pela diferenca entre a velocidade indicada no disco e a velocidade maxima real do ensaio, respeitando a tolerancia configurada.";
 
@@ -23,6 +31,10 @@ const COLORS = {
 const state = {
   image: null,
   imageName: "",
+  cameraStream: null,
+  cameraDevices: [],
+  capturedCameraFile: null,
+  capturedCameraUrl: "",
   marks: {
     line40: [],
     line60: [],
@@ -45,6 +57,7 @@ const els = {
   canvasWrap: $("canvasWrap"),
   emptyState: $("emptyState"),
   loadImageButton: $("loadImageButton"),
+  openCameraButton: $("openCameraButton"),
   calculateButton: $("calculateButton"),
   saveButton: $("saveButton"),
   zoomInButton: $("zoomInButton"),
@@ -91,7 +104,18 @@ const els = {
   statusBadge: $("statusBadge"),
   reasonOutput: $("reasonOutput"),
   statusText: $("statusText"),
-  lastCalcText: $("lastCalcText")
+  lastCalcText: $("lastCalcText"),
+  cameraModal: $("cameraModal"),
+  cameraSelect: $("cameraSelect"),
+  cameraVideo: $("cameraVideo"),
+  cameraPreview: $("cameraPreview"),
+  cameraStatusText: $("cameraStatusText"),
+  refreshCamerasButton: $("refreshCamerasButton"),
+  capturePhotoButton: $("capturePhotoButton"),
+  usePhotoButton: $("usePhotoButton"),
+  retakePhotoButton: $("retakePhotoButton"),
+  closeCameraButton: $("closeCameraButton"),
+  cancelCameraButton: $("cancelCameraButton")
 };
 
 const viewer = new ImageViewer(els.canvas, els.canvasWrap, drawScene);
@@ -114,6 +138,7 @@ function init() {
 function bindEvents() {
   els.loadImageButton.addEventListener("click", () => els.fileInput.click());
   els.fileInput.addEventListener("change", handleFile);
+  els.openCameraButton.addEventListener("click", openCameraModal);
   els.calculateButton.addEventListener("click", triggerCalculate);
   els.calculateButton.addEventListener("pointerup", triggerCalculate);
   els.calculateResultButton.addEventListener("click", triggerCalculate);
@@ -147,6 +172,13 @@ function bindEvents() {
   els.clearMarksButton.addEventListener("click", clearMarks);
   els.markedImageButton.addEventListener("click", downloadMarkedImage);
   els.historyList.addEventListener("click", handleHistoryClick);
+  els.cameraSelect.addEventListener("change", handleCameraSelection);
+  els.refreshCamerasButton.addEventListener("click", refreshCameraDevices);
+  els.capturePhotoButton.addEventListener("click", captureCameraPhoto);
+  els.usePhotoButton.addEventListener("click", useCapturedCameraPhoto);
+  els.retakePhotoButton.addEventListener("click", retakeCameraPhoto);
+  els.closeCameraButton.addEventListener("click", closeCameraModal);
+  els.cancelCameraButton.addEventListener("click", closeCameraModal);
   els.canvas.addEventListener("click", handleCanvasClick);
   els.toleranceInput.addEventListener("input", clearCalculationError);
   els.maxSpeedInput.addEventListener("input", clearCalculationError);
@@ -174,6 +206,11 @@ function clearCalculationError() {
 function handleFile(event) {
   const file = event.target.files?.[0];
   if (!file) return;
+  loadImageFile(file);
+  event.target.value = "";
+}
+
+function loadImageFile(file) {
   const url = URL.createObjectURL(file);
   const image = new Image();
   image.onload = () => {
@@ -181,7 +218,186 @@ function handleFile(event) {
     setImage(image, file.name);
     setStatus("Imagem carregada. Marque a linha 40 km/h.");
   };
+  image.onerror = () => {
+    URL.revokeObjectURL(url);
+    setStatus("Nao foi possivel carregar a imagem selecionada.");
+  };
   image.src = url;
+}
+
+async function openCameraModal() {
+  if (!navigator.mediaDevices?.getUserMedia || !navigator.mediaDevices?.enumerateDevices) {
+    const message = "Seu navegador ou ambiente atual nao permite acesso a camera. Abra o sistema em HTTPS ou localhost.";
+    setStatus(message);
+    return;
+  }
+
+  clearCapturedCameraPhoto();
+  els.cameraModal.hidden = false;
+  setCameraStatus("Solicitando acesso a camera...");
+  updateCameraCaptureState(false);
+
+  try {
+    const devices = await refreshCameraDevices();
+    const savedCamera = loadDefaultCamera(localStorage);
+    const preferred = selectPreferredCamera(devices, savedCamera);
+    if (savedCamera && preferred && preferred.deviceId !== savedCamera.deviceId) {
+      setCameraStatus("Camera padrao nao encontrada. Selecione outra camera.");
+    }
+    await openCamera(preferred?.deviceId || "");
+    await refreshCameraDevices();
+    const selected = selectedCameraDevice();
+    if (selected) saveDefaultCamera(localStorage, selected);
+    setCameraStatus("Camera aberta. Posicione o disco e tire a foto.");
+  } catch (error) {
+    setCameraStatus(cameraErrorMessage(error));
+    setStatus(cameraErrorMessage(error));
+  }
+}
+
+async function refreshCameraDevices() {
+  const devices = normalizeVideoDevices(await navigator.mediaDevices.enumerateDevices());
+  state.cameraDevices = devices;
+  renderCameraOptions(devices);
+  return devices;
+}
+
+function renderCameraOptions(devices) {
+  els.cameraSelect.innerHTML = "";
+  if (!devices.length) {
+    els.cameraSelect.append(new Option("Nenhuma camera encontrada", ""));
+    return;
+  }
+
+  const savedCamera = loadDefaultCamera(localStorage);
+  const preferred = selectPreferredCamera(devices, savedCamera);
+  devices.forEach((device) => {
+    els.cameraSelect.append(new Option(device.label, device.deviceId));
+  });
+  els.cameraSelect.value = preferred?.deviceId || devices[0].deviceId;
+}
+
+async function handleCameraSelection() {
+  const device = selectedCameraDevice();
+  if (device) saveDefaultCamera(localStorage, device);
+  clearCapturedCameraPhoto();
+  updateCameraCaptureState(false);
+  try {
+    await openCamera(device?.deviceId || "");
+    setCameraStatus("Camera selecionada e salva como padrao.");
+  } catch (error) {
+    setCameraStatus(cameraErrorMessage(error));
+  }
+}
+
+async function openCamera(deviceId) {
+  stopCameraStream();
+  const stream = await navigator.mediaDevices.getUserMedia(buildCameraConstraints(deviceId));
+  state.cameraStream = stream;
+  els.cameraVideo.srcObject = stream;
+  els.cameraVideo.hidden = false;
+  els.cameraPreview.hidden = true;
+  await els.cameraVideo.play();
+
+  const selected = selectedCameraDevice();
+  if (selected) saveDefaultCamera(localStorage, selected);
+}
+
+function stopCameraStream() {
+  if (!state.cameraStream) return;
+  state.cameraStream.getTracks().forEach((track) => track.stop());
+  state.cameraStream = null;
+  els.cameraVideo.srcObject = null;
+}
+
+async function captureCameraPhoto() {
+  if (!state.cameraStream || !els.cameraVideo.videoWidth || !els.cameraVideo.videoHeight) {
+    setCameraStatus("A camera ainda nao esta pronta para capturar.");
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = els.cameraVideo.videoWidth;
+  canvas.height = els.cameraVideo.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(els.cameraVideo, 0, 0, canvas.width, canvas.height);
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.95));
+  if (!blob) {
+    setCameraStatus("Nao foi possivel capturar a foto. Tente novamente.");
+    return;
+  }
+
+  clearCapturedCameraPhoto();
+  state.capturedCameraFile = new File([blob], createCameraFileName(), { type: "image/jpeg" });
+  state.capturedCameraUrl = URL.createObjectURL(blob);
+  els.cameraPreview.src = state.capturedCameraUrl;
+  els.cameraPreview.hidden = false;
+  els.cameraVideo.hidden = true;
+  stopCameraStream();
+  updateCameraCaptureState(true);
+  setCameraStatus("Foto capturada. Use esta foto ou tire outra.");
+}
+
+function useCapturedCameraPhoto() {
+  if (!state.capturedCameraFile) {
+    setCameraStatus("Tire uma foto antes de usar.");
+    return;
+  }
+  loadImageFile(state.capturedCameraFile);
+  closeCameraModal();
+  setStatus("Foto da camera carregada. Marque a linha 40 km/h.");
+}
+
+async function retakeCameraPhoto() {
+  clearCapturedCameraPhoto();
+  updateCameraCaptureState(false);
+  try {
+    await openCamera(els.cameraSelect.value);
+    setCameraStatus("Camera reaberta. Tire outra foto.");
+  } catch (error) {
+    setCameraStatus(cameraErrorMessage(error));
+  }
+}
+
+function closeCameraModal() {
+  stopCameraStream();
+  clearCapturedCameraPhoto();
+  els.cameraModal.hidden = true;
+}
+
+function clearCapturedCameraPhoto() {
+  if (state.capturedCameraUrl) URL.revokeObjectURL(state.capturedCameraUrl);
+  state.capturedCameraUrl = "";
+  state.capturedCameraFile = null;
+  els.cameraPreview.removeAttribute("src");
+}
+
+function updateCameraCaptureState(hasPhoto) {
+  els.capturePhotoButton.hidden = hasPhoto;
+  els.usePhotoButton.hidden = !hasPhoto;
+  els.retakePhotoButton.hidden = !hasPhoto;
+  els.cameraVideo.hidden = hasPhoto;
+  els.cameraPreview.hidden = !hasPhoto;
+}
+
+function selectedCameraDevice() {
+  return state.cameraDevices.find((device) => device.deviceId === els.cameraSelect.value) || null;
+}
+
+function setCameraStatus(message) {
+  els.cameraStatusText.textContent = message;
+}
+
+function cameraErrorMessage(error) {
+  const name = error?.name || "";
+  const messages = {
+    NotAllowedError: "A permissao da camera foi negada. Libere o acesso a camera no navegador ou use a opcao Carregar imagem.",
+    NotFoundError: "Nenhuma camera foi encontrada neste computador. Conecte uma webcam ou use a opcao Carregar imagem.",
+    NotReadableError: "A camera nao pode ser acessada. Verifique se ela esta sendo usada por outro aplicativo.",
+    OverconstrainedError: "A camera selecionada nao suporta esta configuracao. Escolha outra camera ou reduza a qualidade."
+  };
+  return messages[name] || "Nao foi possivel iniciar a camera. Use Carregar imagem ou tente novamente.";
 }
 
 function setImage(image, name) {
