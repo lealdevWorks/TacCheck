@@ -677,37 +677,82 @@ function drawScene(ctx, viewport, rect) {
 
   ctx.save();
   ctx.lineWidth = 2;
-  drawPointSet(ctx, state.marks.line40, COLORS.line40, "40");
-  drawPointSet(ctx, state.marks.line60, COLORS.line60, "60");
-  drawPointSet(ctx, state.marks.registerTop, COLORS.register, "topo");
+  drawPointSet(ctx, state.marks.line40, COLORS.line40);
+  drawPointSet(ctx, state.marks.line60, COLORS.line60);
+  drawPointSet(ctx, state.marks.registerTop, COLORS.register);
 
   if (state.lastAnalysis) {
     drawEvidence(ctx, viewport, state.lastAnalysis, rect);
   } else {
     const preview = getReadingPreview();
     if (preview) {
-      drawLineAtCenter(ctx, preview.calibration, preview.register.line.center, COLORS.register, "linha de leitura", false, 34, 140);
+      const labels = createCanvasLabelLayout(rect);
+      drawLineAtCenter(ctx, preview.calibration, preview.register.line.center, COLORS.register, {
+        dashed: false,
+        label: "TOPO",
+        importance: "low",
+        normalOffset: 26,
+        lineOffset: 82
+      }, labels);
     }
   }
   ctx.restore();
 }
 
-function drawEvidence(ctx, viewport, analysis) {
+function drawEvidence(ctx, viewport, analysis, rect = null) {
   const maxSpeed = analysis.result.maxSpeed;
   const lower = analysis.result.lowerLimit;
   const upper = analysis.result.upperLimit;
   const indicated = analysis.result.indicatedSpeed;
+  const labels = createCanvasLabelLayout(rect);
 
-  drawSpeedLine(ctx, analysis.calibration, 40, COLORS.line40, "40 km/h", false, 0, 0);
-  drawSpeedLine(ctx, analysis.calibration, 60, COLORS.line60, "60 km/h", false, 0, 0);
-  drawSpeedLine(ctx, analysis.calibration, 50, COLORS.line50, "50 km/h", false, -4, 20);
-  drawSpeedLine(ctx, analysis.calibration, maxSpeed, COLORS.max, `Max. ${formatNumber(maxSpeed)}`, false, -10, -40);
-  drawSpeedLine(ctx, analysis.calibration, lower, COLORS.limit, `Limite inf. ${formatNumber(lower)}`, true, 20, -120);
-  drawSpeedLine(ctx, analysis.calibration, upper, COLORS.limit, `Limite sup. ${formatNumber(upper)}`, true, -10, -120);
-  drawSpeedLine(ctx, analysis.calibration, indicated, COLORS.register, `Vel. indicada ${formatNumber(indicated)}`, false, 34, 140);
+  drawSpeedLine(ctx, analysis.calibration, 40, COLORS.line40, {
+    label: "40 km/h",
+    normalOffset: 24,
+    lineOffset: -96,
+    importance: "low"
+  }, labels);
+  drawSpeedLine(ctx, analysis.calibration, 60, COLORS.line60, {
+    label: "60 km/h",
+    normalOffset: -24,
+    lineOffset: 94,
+    importance: "low"
+  }, labels);
+  drawSpeedLine(ctx, analysis.calibration, 50, COLORS.line50, {
+    label: "50 km/h",
+    normalOffset: -22,
+    lineOffset: 24,
+    importance: "normal"
+  }, labels);
+  drawSpeedLine(ctx, analysis.calibration, maxSpeed, COLORS.max, {
+    label: `MAX ${formatNumber(maxSpeed)}`,
+    normalOffset: -34,
+    lineOffset: -44,
+    importance: "strong"
+  }, labels);
+  drawSpeedLine(ctx, analysis.calibration, lower, COLORS.limit, {
+    dashed: true,
+    label: `INF ${formatNumber(lower)}`,
+    normalOffset: 34,
+    lineOffset: -126,
+    importance: "secondary"
+  }, labels);
+  drawSpeedLine(ctx, analysis.calibration, upper, COLORS.limit, {
+    dashed: true,
+    label: `SUP ${formatNumber(upper)}`,
+    normalOffset: -34,
+    lineOffset: -126,
+    importance: "secondary"
+  }, labels);
+  drawSpeedLine(ctx, analysis.calibration, indicated, COLORS.register, {
+    label: `INDICADA ${formatNumber(indicated)}`,
+    normalOffset: 44,
+    lineOffset: 126,
+    importance: "primary"
+  }, labels);
 }
 
-function drawPointSet(ctx, points, color, label) {
+function drawPointSet(ctx, points, color) {
   if (!points.length) return;
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
@@ -731,19 +776,21 @@ function drawPointSet(ctx, points, color, label) {
     ctx.fillText(String(index + 1), p.x, p.y);
     ctx.fillStyle = color;
   });
-  if (label) {
-    const first = viewer.imageToScreen(points[0]);
-    ctx.font = "700 12px Segoe UI";
-    ctx.fillText(label, first.x + 10, first.y - 10);
-  }
 }
 
-function drawSpeedLine(ctx, calibration, speed, color, label, dashed, labelOffsetY = 0, labelOffsetX = 0) {
+function drawSpeedLine(ctx, calibration, speed, color, options = {}, labels = null) {
   const center = pointForSpeed(calibration, speed);
-  drawLineAtCenter(ctx, calibration, center, color, label, dashed, labelOffsetY, labelOffsetX);
+  drawLineAtCenter(ctx, calibration, center, color, options, labels);
 }
 
-function drawLineAtCenter(ctx, calibration, center, color, label, dashed, labelOffsetY = 0, labelOffsetX = 0) {
+function drawLineAtCenter(ctx, calibration, center, color, options = {}, labels = null) {
+  const {
+    dashed = false,
+    label = "",
+    normalOffset = 0,
+    lineOffset = 0,
+    importance = "normal"
+  } = options;
   const half = Math.max(state.image.naturalWidth, state.image.naturalHeight);
   const a = {
     x: center.x - calibration.direction.x * half,
@@ -756,6 +803,8 @@ function drawLineAtCenter(ctx, calibration, center, color, label, dashed, labelO
   const sa = viewer.imageToScreen(a);
   const sb = viewer.imageToScreen(b);
   const st = viewer.imageToScreen(center);
+  const direction = normalizeVector({ x: sb.x - sa.x, y: sb.y - sa.y });
+  const normal = { x: -direction.y, y: direction.x };
 
   ctx.save();
   ctx.strokeStyle = color;
@@ -767,16 +816,238 @@ function drawLineAtCenter(ctx, calibration, center, color, label, dashed, labelO
   ctx.lineTo(sb.x, sb.y);
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.font = "700 13px Segoe UI";
-  ctx.textBaseline = "middle";
-  const textX = st.x + 8 + labelOffsetX;
-  const textY = st.y + labelOffsetY;
-  const metrics = ctx.measureText(label);
-  ctx.fillStyle = "rgba(255, 255, 255, 0.82)";
-  ctx.fillRect(textX - 4, textY - 9, metrics.width + 8, 18);
-  ctx.fillStyle = color;
-  ctx.fillText(label, textX, textY);
+
+  if (label) {
+    drawCanvasTag(ctx, {
+      anchor: st,
+      direction,
+      normal,
+      lineOffset,
+      normalOffset,
+      color,
+      label,
+      importance
+    }, labels);
+  }
   ctx.restore();
+}
+
+function createCanvasLabelLayout(rect) {
+  const bounds = rect || { width: state.image?.naturalWidth || 1, height: state.image?.naturalHeight || 1 };
+  return {
+    bounds: {
+      width: bounds.width,
+      height: bounds.height
+    },
+    boxes: []
+  };
+}
+
+function drawCanvasTag(ctx, tag, layout) {
+  const style = canvasTagStyle(tag.importance);
+  ctx.save();
+  ctx.font = `${style.weight} ${style.fontSize}px Segoe UI, Arial, sans-serif`;
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+
+  const textWidth = Math.ceil(ctx.measureText(tag.label).width);
+  const width = textWidth + style.paddingX * 2 + style.chipWidth + style.chipGap;
+  const height = style.height;
+  const anchor = {
+    x: tag.anchor.x + tag.direction.x * tag.lineOffset + tag.normal.x * tag.normalOffset,
+    y: tag.anchor.y + tag.direction.y * tag.lineOffset + tag.normal.y * tag.normalOffset
+  };
+  const box = placeCanvasTagBox(anchor, width, height, tag.normal, layout);
+  const pointerEnd = {
+    x: tag.anchor.x + tag.direction.x * Math.min(Math.abs(tag.lineOffset), 18) * Math.sign(tag.lineOffset || 1),
+    y: tag.anchor.y + tag.direction.y * Math.min(Math.abs(tag.lineOffset), 18) * Math.sign(tag.lineOffset || 1)
+  };
+  const pointerStart = nearestPointOnBox(pointerEnd, box);
+
+  ctx.strokeStyle = withAlpha(tag.color, 0.62);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pointerEnd.x, pointerEnd.y);
+  ctx.lineTo(pointerStart.x, pointerStart.y);
+  ctx.stroke();
+
+  ctx.fillStyle = withAlpha("#020914", style.fillAlpha);
+  roundRect(ctx, box.x, box.y, box.width, box.height, style.radius);
+  ctx.fill();
+  ctx.strokeStyle = withAlpha(tag.color, style.borderAlpha);
+  ctx.stroke();
+
+  ctx.fillStyle = withAlpha(tag.color, style.chipAlpha);
+  roundRect(ctx, box.x + style.paddingX, box.y + (height - style.chipHeight) / 2, style.chipWidth, style.chipHeight, 2);
+  ctx.fill();
+
+  ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
+  ctx.shadowBlur = 7;
+  ctx.fillStyle = style.textColor;
+  ctx.fillText(
+    tag.label,
+    box.x + style.paddingX + style.chipWidth + style.chipGap,
+    box.y + height / 2
+  );
+  ctx.restore();
+}
+
+function canvasTagStyle(importance) {
+  return {
+    primary: {
+      height: 28,
+      paddingX: 9,
+      chipWidth: 5,
+      chipHeight: 18,
+      chipGap: 8,
+      radius: 7,
+      fontSize: 13,
+      weight: 900,
+      fillAlpha: 0.86,
+      borderAlpha: 0.92,
+      chipAlpha: 1,
+      textColor: "#fff8d6"
+    },
+    strong: {
+      height: 25,
+      paddingX: 8,
+      chipWidth: 5,
+      chipHeight: 15,
+      chipGap: 7,
+      radius: 7,
+      fontSize: 12,
+      weight: 850,
+      fillAlpha: 0.82,
+      borderAlpha: 0.82,
+      chipAlpha: 0.95,
+      textColor: "#f3efff"
+    },
+    secondary: {
+      height: 24,
+      paddingX: 8,
+      chipWidth: 4,
+      chipHeight: 14,
+      chipGap: 7,
+      radius: 6,
+      fontSize: 12,
+      weight: 800,
+      fillAlpha: 0.78,
+      borderAlpha: 0.72,
+      chipAlpha: 0.86,
+      textColor: "#f3f7ff"
+    },
+    low: {
+      height: 22,
+      paddingX: 7,
+      chipWidth: 4,
+      chipHeight: 12,
+      chipGap: 6,
+      radius: 6,
+      fontSize: 11,
+      weight: 800,
+      fillAlpha: 0.68,
+      borderAlpha: 0.58,
+      chipAlpha: 0.82,
+      textColor: "#e9f2ff"
+    },
+    normal: {
+      height: 24,
+      paddingX: 8,
+      chipWidth: 5,
+      chipHeight: 14,
+      chipGap: 7,
+      radius: 6,
+      fontSize: 12,
+      weight: 850,
+      fillAlpha: 0.8,
+      borderAlpha: 0.78,
+      chipAlpha: 0.92,
+      textColor: "#f4f8ff"
+    }
+  }[importance] || canvasTagStyle("normal");
+}
+
+function placeCanvasTagBox(anchor, width, height, normal, layout) {
+  const bounds = layout?.bounds || { width: state.image?.naturalWidth || 1, height: state.image?.naturalHeight || 1 };
+  const margin = 8;
+  const attempts = [
+    { x: anchor.x - width / 2, y: anchor.y - height / 2 },
+    { x: anchor.x - width / 2 + normal.x * 18, y: anchor.y - height / 2 + normal.y * 18 },
+    { x: anchor.x - width / 2 - normal.x * 18, y: anchor.y - height / 2 - normal.y * 18 },
+    { x: anchor.x - width / 2, y: anchor.y - height / 2 - 28 },
+    { x: anchor.x - width / 2, y: anchor.y - height / 2 + 28 }
+  ];
+
+  for (const attempt of attempts) {
+    const box = clampCanvasBox({
+      x: attempt.x,
+      y: attempt.y,
+      width,
+      height
+    }, bounds, margin);
+    if (!layout || !layout.boxes.some((existing) => boxesOverlap(box, existing, 4))) {
+      layout?.boxes.push(box);
+      return box;
+    }
+  }
+
+  const fallback = clampCanvasBox({ ...attempts[0], width, height }, bounds, margin);
+  layout?.boxes.push(fallback);
+  return fallback;
+}
+
+function clampCanvasBox(box, bounds, margin) {
+  return {
+    ...box,
+    x: Math.max(margin, Math.min(bounds.width - box.width - margin, box.x)),
+    y: Math.max(margin, Math.min(bounds.height - box.height - margin, box.y))
+  };
+}
+
+function boxesOverlap(a, b, gap = 0) {
+  return !(
+    a.x + a.width + gap < b.x ||
+    b.x + b.width + gap < a.x ||
+    a.y + a.height + gap < b.y ||
+    b.y + b.height + gap < a.y
+  );
+}
+
+function nearestPointOnBox(point, box) {
+  return {
+    x: Math.max(box.x, Math.min(box.x + box.width, point.x)),
+    y: Math.max(box.y, Math.min(box.y + box.height, point.y))
+  };
+}
+
+function normalizeVector(vector) {
+  const length = Math.hypot(vector.x, vector.y) || 1;
+  return {
+    x: vector.x / length,
+    y: vector.y / length
+  };
+}
+
+function withAlpha(hex, alpha) {
+  const normalized = hex.replace("#", "");
+  const value = Number.parseInt(normalized.length === 3
+    ? normalized.split("").map((char) => char + char).join("")
+    : normalized, 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function roundRect(ctx, x, y, width, height, radius) {
+  const safeRadius = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + safeRadius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, safeRadius);
+  ctx.arcTo(x + width, y + height, x, y + height, safeRadius);
+  ctx.arcTo(x, y + height, x, y, safeRadius);
+  ctx.arcTo(x, y, x + width, y, safeRadius);
+  ctx.closePath();
 }
 
 function updateUi() {
