@@ -1,9 +1,11 @@
 {
   "name": "taccheck",
   "compatibility_date": "2026-06-18",
+  "workers_dev": true,
+  "preview_urls": true,
   "assets": {
-    "directory": ".",
+    "directory": "./public",
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "none"
+    "not_found_handling": "single-page-application"
   }
 }

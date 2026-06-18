@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TacCheck - Análise de Disco de Tacógrafo</title>
+    <link rel="icon" type="image/x-icon" href="./assets/brand/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/brand/taccheck-icon-32.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="./assets/brand/taccheck-icon-64.png">
+    <link rel="apple-touch-icon" href="./assets/brand/apple-touch-icon.png">
+    <link rel="manifest" href="./assets/brand/site.webmanifest?v=0.2.4">
+    <meta name="theme-color" content="#071b35">
+    <script>
+      (function () {
+        function getCookie(name) {
+          const cookies = document.cookie ? document.cookie.split("; ") : [];
+          for (const cookie of cookies) {
+            const parts = cookie.split("=");
+            const key = decodeURIComponent(parts.shift());
+            const value = decodeURIComponent(parts.join("="));
+            if (key === name) return value;
+          }
+          return null;
+        }
+
+        const allowedThemes = ["auto", "light", "dark"];
+        const savedTheme = getCookie("taccheck_theme");
+        const theme = allowedThemes.includes(savedTheme) ? savedTheme : "auto";
+
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+    <link rel="stylesheet" href="./src/styles/main.css?v=0.2.9">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand">
+          <img src="./assets/brand/taccheck-icon-64.png" alt="TacCheck" class="brand-icon">
+          <div class="brand-text">
+            <strong>TacCheck</strong>
+            <span>Análise de Disco de Tacógrafo</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="loadImageButton" type="button" class="button button-light">Carregar imagem</button>
+          <button id="openCameraButton" type="button" class="button button-light">Usar câmera</button>
+          <button id="calculateButton" type="button" class="button button-primary" onclick="window.TacCheckCalculate && window.TacCheckCalculate(event)">Calcular</button>
+          <button id="saveButton" type="button" class="button button-success">Salvar análise</button>
+          <div class="settings-menu">
+            <button id="settingsButton" type="button" class="icon-button settings-button" title="Configurações" aria-label="Configurações" aria-expanded="false" aria-controls="settingsPopover"></button>
+            <div id="settingsPopover" class="settings-popover" hidden>
+              <strong>Configurações</strong>
+              <div class="settings-group" role="group" aria-label="Tema da interface">
+                <span>Tema da interface</span>
+                <button type="button" data-theme-option="auto">Automático pelo sistema</button>
+                <button type="button" data-theme-option="light">Claro</button>
+                <button type="button" data-theme-option="dark">Escuro</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="exam-bar" aria-label="Dados do ensaio">
+        <label>
+          <span>Placa</span>
+          <input id="plateInput" placeholder="Ex.: ABC1D23" autocomplete="off">
+        </label>
+        <label>
+          <span>Data do ensaio</span>
+          <input id="dateInput" type="date">
+        </label>
+        <label>
+          <span>Velocidade alvo</span>
+          <select id="targetSpeedInput">
+            <option value="50">50 km/h</option>
+            <option value="40/60">40/60 km/h</option>
+          </select>
+        </label>
+        <label>
+          <span>Velocidade máxima do ensaio</span>
+          <div class="input-addon">
+            <input id="maxSpeedInput" placeholder="Informe" inputmode="decimal">
+            <b>km/h</b>
+          </div>
+        </label>
+        <label>
+          <span>Tolerância</span>
+          <div class="input-addon short">
+            <input id="toleranceInput" value="4,000" inputmode="decimal">
+            <b>km/h</b>
+          </div>
+        </label>
+        <label>
+          <span>Critério</span>
+          <select id="criterionInput">
+            <option value="gt">&gt; tolerância</option>
+            <option value="gte">≥ tolerância</option>
+          </select>
+        </label>
+        <label class="wide-field">
+          <span>Observação</span>
+          <input id="noteInput" placeholder="Opcional">
+        </label>
+      </section>
+
+      <main class="workbench">
+        <aside class="left-panel">
+          <div class="left-panel-content">
+          <nav class="steps" aria-label="Etapas">
+            <button class="step is-active" data-step="image">
+              <strong>1</strong>
+              <span>Imagem<small id="imageStepStatus">pendente</small></span>
+            </button>
+            <button class="step" data-step="scale">
+              <strong>2</strong>
+              <span>Escala<small id="scaleStepStatus">pendente</small></span>
+            </button>
+            <button class="step" data-step="register">
+              <strong>3</strong>
+              <span>Registro<small id="registerStepStatus">pendente</small></span>
+            </button>
+            <button class="step" data-step="result">
+              <strong>4</strong>
+              <span>Resultado<small id="resultStepStatus">aguardando</small></span>
+            </button>
+          </nav>
+
+          <section class="legend">
+            <h2>Legenda</h2>
+            <p><i class="line green"></i>40 km/h</p>
+            <p><i class="line blue"></i>60 km/h</p>
+            <p><i class="line red"></i>50 km/h</p>
+            <p><i class="line purple"></i>Velocidade máxima</p>
+            <p><i class="line dash"></i>Limites</p>
+            <p><i class="line yellow"></i>Linha de leitura</p>
+          </section>
+          </div>
+        </aside>
+
+        <section class="canvas-panel">
+          <div class="tool-strip" aria-label="Ferramentas da imagem">
+            <button id="zoomInButton" title="Zoom +">+</button>
+            <button id="zoomOutButton" title="Zoom -">−</button>
+            <button id="fitButton" title="Ajustar à tela">Ajustar</button>
+            <button id="actualSizeButton" title="Zoom 100%">100%</button>
+            <button id="contrastButton" title="Aumentar contraste">Contraste</button>
+            <button id="resetViewButton" title="Redefinir visualização">Redefinir</button>
+            <button id="toggleMarksButton" title="Mostrar ou ocultar marcações">Marcas</button>
+            <button id="undoButton" title="Desfazer última marcação">Desfazer</button>
+          </div>
+          <div id="canvasWrap" class="canvas-wrap image-viewer">
+            <canvas id="imageCanvas"></canvas>
+            <div id="emptyState" class="empty-state">
+              <strong>Carregue uma imagem do disco</strong>
+              <span>Depois marque as linhas 40, 60 e o topo do registro.</span>
+            </div>
+          </div>
+          <div class="mark-toolbar">
+            <button id="mark40Button" type="button" class="button button-light">Marcar 40</button>
+            <button id="mark60Button" type="button" class="button button-light">Marcar 60</button>
+            <button id="markTopButton" type="button" class="button button-light">Marcar topo do registro</button>
+            <button id="clearMarksButton" type="button" class="button button-danger-light">Limpar marcações</button>
+          </div>
+        </section>
+
+        <aside class="right-panel">
+          <div class="right-panel-content">
+          <section class="card instructions">
+            <h2 id="modeTitle">Como marcar</h2>
+            <p id="modeText">Carregue a imagem e use os botões de marcação. Cada linha precisa de pelo menos 2 pontos.</p>
+            <div id="qualityBox" class="quality-box">
+              <span>Calibração</span>
+              <strong id="qualityText">aguardando escala</strong>
+            </div>
+            <div class="reading-controls">
+              <div class="reading-control-head">
+                <span>Ajuste fino do topo</span>
+                <strong id="readingOffsetText">0 px</strong>
+              </div>
+              <div class="reading-control-actions">
+                <button id="readingUpButton" type="button" title="Mover a linha para cima. Shift = 5 px">-</button>
+                <button id="readingResetButton" type="button" title="Zerar deslocamento">0</button>
+                <button id="readingDownButton" type="button" title="Mover a linha para baixo. Shift = 5 px">+</button>
+              </div>
+              <p id="readingPreviewText">Clique em 1 ponto no topo do registro.</p>
+            </div>
+          </section>
+
+          <section class="card result-card">
+            <h2>Resultado da análise</h2>
+            <dl>
+              <div><dt>Vel. máxima do ensaio</dt><dd id="maxSpeedOutput">-</dd></div>
+              <div><dt>Vel. indicada no disco</dt><dd id="indicatedSpeedOutput">-</dd></div>
+              <div><dt>Divergência</dt><dd id="divergenceOutput">-</dd></div>
+              <div><dt>Limite inferior</dt><dd id="lowerLimitOutput">-</dd></div>
+              <div><dt>Limite superior</dt><dd id="upperLimitOutput">-</dd></div>
+              <div><dt>Tolerância</dt><dd id="toleranceOutput">-</dd></div>
+            </dl>
+            <div id="statusBadge" class="status-badge muted">Aguardando cálculo</div>
+            <p id="reasonOutput" class="reason">Marque a escala e o registro para calcular.</p>
+            <button id="calculateResultButton" type="button" class="button button-primary result-calculate-button" onclick="window.TacCheckCalculate && window.TacCheckCalculate(event)">Calcular agora</button>
+          </section>
+
+          <section class="card actions-card">
+            <button id="markedImageButton" type="button" class="button button-light">Gerar imagem marcada</button>
+          </section>
+
+          <section class="card history-card">
+            <div class="history-head">
+              <h2>Histórico local</h2>
+              <span id="historyCount">0</span>
+            </div>
+            <div id="historyList" class="history-list" aria-live="polite"></div>
+          </section>
+          </div>
+        </aside>
+      </main>
+
+      <footer class="status-bar">
+        <span id="statusText">Sistema pronto</span>
+        <span class="version-text">TacCheck v0.2.3 · © 2026 Leal DevWorks</span>
+        <span id="lastCalcText">Último cálculo: -</span>
+      </footer>
+    </div>
+
+    <div id="cameraModal" class="camera-modal" hidden>
+      <div class="camera-dialog" role="dialog" aria-modal="true" aria-labelledby="cameraTitle">
+        <div class="camera-header">
+          <div>
+            <h2 id="cameraTitle">Captura pela câmera</h2>
+            <p id="cameraStatusText">Use boa iluminação, mantenha o disco plano e evite reflexos.</p>
+          </div>
+          <button id="closeCameraButton" type="button" class="camera-icon-button" title="Fechar câmera">×</button>
+        </div>
+
+        <div class="camera-settings">
+          <label>
+            <span>Câmera padrão</span>
+            <select id="cameraSelect"></select>
+          </label>
+          <button id="refreshCamerasButton" type="button" class="button button-light">Atualizar câmeras</button>
+        </div>
+
+        <div class="camera-stage">
+          <video id="cameraVideo" autoplay playsinline muted></video>
+          <img id="cameraPreview" alt="Foto capturada pela câmera" hidden>
+          <div class="camera-grid" aria-hidden="true"></div>
+        </div>
+
+        <div class="camera-actions">
+          <button id="capturePhotoButton" type="button" class="button button-primary">Tirar foto</button>
+          <button id="usePhotoButton" type="button" class="button button-success" hidden>Usar esta foto</button>
+          <button id="retakePhotoButton" type="button" class="button button-light" hidden>Tirar outra foto</button>
+          <button id="cancelCameraButton" type="button" class="button button-light">Fechar câmera</button>
+        </div>
+      </div>
+    </div>
+
+    <input id="fileInput" type="file" accept="image/*" hidden>
+    <script type="module" src="./src/ui/app.js?v=0.2.7"></script>
+  </body>
+</html>
