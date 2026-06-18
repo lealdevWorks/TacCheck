@@ -775,11 +775,20 @@ select {
   background: #0f172a;
 }
 
+.camera-stage video[hidden],
+.camera-stage img[hidden] {
+  display: none;
+}
+
 .camera-grid {
   position: absolute;
   inset: 9%;
   border: 1px dashed rgba(255, 255, 255, 0.62);
   pointer-events: none;
+}
+
+.camera-modal[data-camera-mode="preview"] .camera-grid {
+  display: none;
 }
 
 .camera-grid::before,

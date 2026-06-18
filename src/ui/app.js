@@ -14,7 +14,7 @@ import { ImageViewer } from "./viewer.js";
 
 const $ = (id) => document.getElementById(id);
 
-const APP_VERSION = "0.2.2";
+const APP_VERSION = "0.2.3";
 const HISTORY_STORAGE_KEY = "taccheck_analises";
 const METHODOLOGY_TEXT = "A analise foi realizada por conferencia rapida em imagem digital do disco de tacografo, utilizando calibracao em pixels a partir das linhas reais de 40 km/h e 60 km/h impressas no disco. A linha de 50 km/h foi calculada automaticamente como ponto medio entre as referencias 40 km/h e 60 km/h. A velocidade indicada no disco foi obtida por uma linha de leitura paralela a escala, criada a partir de 1 ponto marcado no topo do registro e ajustada por deslocamento perpendicular. O resultado foi calculado pela diferenca entre a velocidade indicada no disco e a velocidade maxima real do ensaio, respeitando a tolerancia configurada.";
 
@@ -33,6 +33,7 @@ const state = {
   imageName: "",
   cameraStream: null,
   cameraDevices: [],
+  cameraMode: "live",
   capturedCameraFile: null,
   capturedCameraUrl: "",
   marks: {
@@ -235,7 +236,7 @@ async function openCameraModal() {
   clearCapturedCameraPhoto();
   els.cameraModal.hidden = false;
   setCameraStatus("Solicitando acesso a camera...");
-  updateCameraCaptureState(false);
+  updateCameraCaptureState("live");
 
   try {
     const devices = await refreshCameraDevices();
@@ -281,7 +282,7 @@ async function handleCameraSelection() {
   const device = selectedCameraDevice();
   if (device) saveDefaultCamera(localStorage, device);
   clearCapturedCameraPhoto();
-  updateCameraCaptureState(false);
+  updateCameraCaptureState("live");
   try {
     await openCamera(device?.deviceId || "");
     setCameraStatus("Camera selecionada e salva como padrao.");
@@ -311,7 +312,15 @@ function stopCameraStream() {
 }
 
 async function captureCameraPhoto() {
-  if (!state.cameraStream || !els.cameraVideo.videoWidth || !els.cameraVideo.videoHeight) {
+  if (!state.cameraStream) {
+    setCameraStatus("A camera ainda nao esta pronta para capturar.");
+    return;
+  }
+
+  els.capturePhotoButton.disabled = true;
+  await waitForCameraFrame();
+  if (!els.cameraVideo.videoWidth || !els.cameraVideo.videoHeight) {
+    els.capturePhotoButton.disabled = false;
     setCameraStatus("A camera ainda nao esta pronta para capturar.");
     return;
   }
@@ -324,19 +333,56 @@ async function captureCameraPhoto() {
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.95));
   if (!blob) {
+    els.capturePhotoButton.disabled = false;
     setCameraStatus("Nao foi possivel capturar a foto. Tente novamente.");
     return;
   }
 
+  try {
+    await setCapturedCameraPreview(blob);
+    stopCameraStream();
+    updateCameraCaptureState("preview");
+    setCameraStatus("Foto capturada. Use esta foto ou tire outra.");
+  } catch {
+    clearCapturedCameraPhoto();
+    setCameraStatus("Nao foi possivel mostrar a pre-visualizacao. Tire outra foto.");
+  } finally {
+    els.capturePhotoButton.disabled = false;
+  }
+}
+
+function waitForCameraFrame() {
+  if (els.cameraVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && els.cameraVideo.videoWidth && els.cameraVideo.videoHeight) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    const timeout = window.setTimeout(resolve, 1200);
+    els.cameraVideo.addEventListener("loadeddata", () => {
+      window.clearTimeout(timeout);
+      resolve();
+    }, { once: true });
+  });
+}
+
+function setCapturedCameraPreview(blob) {
   clearCapturedCameraPhoto();
   state.capturedCameraFile = new File([blob], createCameraFileName(), { type: "image/jpeg" });
   state.capturedCameraUrl = URL.createObjectURL(blob);
-  els.cameraPreview.src = state.capturedCameraUrl;
-  els.cameraPreview.hidden = false;
-  els.cameraVideo.hidden = true;
-  stopCameraStream();
-  updateCameraCaptureState(true);
-  setCameraStatus("Foto capturada. Use esta foto ou tire outra.");
+
+  return new Promise((resolve, reject) => {
+    els.cameraPreview.onload = () => {
+      els.cameraPreview.onload = null;
+      els.cameraPreview.onerror = null;
+      resolve();
+    };
+    els.cameraPreview.onerror = () => {
+      els.cameraPreview.onload = null;
+      els.cameraPreview.onerror = null;
+      reject(new Error("Preview load failed."));
+    };
+    els.cameraPreview.src = state.capturedCameraUrl;
+  });
 }
 
 function useCapturedCameraPhoto() {
@@ -351,7 +397,7 @@ function useCapturedCameraPhoto() {
 
 async function retakeCameraPhoto() {
   clearCapturedCameraPhoto();
-  updateCameraCaptureState(false);
+  updateCameraCaptureState("live");
   try {
     await openCamera(els.cameraSelect.value);
     setCameraStatus("Camera reaberta. Tire outra foto.");
@@ -370,10 +416,15 @@ function clearCapturedCameraPhoto() {
   if (state.capturedCameraUrl) URL.revokeObjectURL(state.capturedCameraUrl);
   state.capturedCameraUrl = "";
   state.capturedCameraFile = null;
+  els.cameraPreview.onload = null;
+  els.cameraPreview.onerror = null;
   els.cameraPreview.removeAttribute("src");
 }
 
-function updateCameraCaptureState(hasPhoto) {
+function updateCameraCaptureState(mode) {
+  state.cameraMode = mode === "preview" ? "preview" : "live";
+  const hasPhoto = state.cameraMode === "preview";
+  els.cameraModal.dataset.cameraMode = state.cameraMode;
   els.capturePhotoButton.hidden = hasPhoto;
   els.usePhotoButton.hidden = !hasPhoto;
   els.retakePhotoButton.hidden = !hasPhoto;
