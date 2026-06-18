@@ -2,6 +2,7 @@
   "name": "TacCheck",
   "short_name": "TacCheck",
   "description": "TacCheck — Análise de Disco de Tacógrafo",
+  "id": "/TacCheck/",
   "start_url": "/TacCheck/",
   "scope": "/TacCheck/",
   "display": "standalone",
