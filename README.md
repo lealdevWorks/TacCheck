@@ -34,6 +34,15 @@ http://127.0.0.1:8765/index.html?demo=1
 - `src/ui/app.js`: interface e geracao da evidencia marcada.
 - `tests/`: testes automatizados dos casos reais, geometria e coordenadas.
 - `evidencias/`: prints gerados para a entrega.
+- `docs/`: regras, historico de solicitacoes, decisoes tecnicas e processo de versionamento.
+
+## Documentacao
+
+- `docs/REGRAS_DO_PROJETO.md`
+- `docs/HISTORICO_DE_SOLICITACOES.md`
+- `docs/PROCESSO_DE_VERSIONAMENTO.md`
+- `docs/DECISOES_TECNICAS.md`
+- `docs/TEMPLATE_SOLICITACAO.md`
 
 ## Metodologia
 
