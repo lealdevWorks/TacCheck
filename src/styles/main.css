@@ -1674,3 +1674,384 @@ html[data-theme="dark"] .image-viewer {
     min-height: 44px;
   }
 }
+
+/* Compact density pass: keeps the dark premium style while fitting operational screens. */
+.app-shell {
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.app-header {
+  min-height: 58px;
+  padding: 8px 14px;
+}
+
+.brand {
+  gap: 12px;
+}
+
+.brand-icon {
+  width: 44px;
+  height: 44px;
+}
+
+.brand-text strong {
+  font-size: 28px;
+}
+
+.brand-text span {
+  margin-top: 5px;
+  font-size: 13px;
+}
+
+.header-actions {
+  gap: 8px;
+}
+
+.header-actions .button {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.button {
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.exam-bar {
+  min-height: 82px;
+  gap: 8px;
+  padding: 24px 12px 8px;
+}
+
+.exam-bar::before {
+  top: 8px;
+  font-size: 15px;
+}
+
+.exam-bar label span,
+label span {
+  margin-bottom: 3px;
+  font-size: 12px;
+}
+
+input,
+select,
+.input-addon b {
+  height: 38px;
+  font-size: 14px;
+}
+
+.workbench {
+  grid-template-columns: 260px minmax(0, 1fr) 350px;
+  gap: 10px;
+}
+
+.left-panel,
+.right-panel,
+.canvas-panel {
+  border-radius: 8px;
+}
+
+.steps {
+  padding: 8px;
+}
+
+.step {
+  grid-template-columns: 32px 36px 1fr;
+  gap: 8px;
+  min-height: 48px;
+  padding: 6px 10px;
+}
+
+.step::before {
+  width: 36px;
+  height: 36px;
+}
+
+.step strong {
+  width: 28px;
+  height: 28px;
+}
+
+.step span {
+  font-size: 14px;
+}
+
+.step small {
+  font-size: 12px;
+}
+
+.legend {
+  padding: 10px 14px;
+}
+
+.legend h2,
+.card h2 {
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.legend p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.card {
+  padding: 10px;
+}
+
+.instructions p,
+.result-card dl div,
+.reason {
+  font-size: 12px;
+}
+
+.quality-box {
+  min-height: 30px;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.reading-controls {
+  margin-top: 6px;
+  padding-top: 6px;
+  gap: 6px;
+}
+
+.reading-control-head span,
+.reading-controls p {
+  font-size: 11px;
+}
+
+.reading-control-head strong {
+  font-size: 13px;
+}
+
+.reading-control-actions button {
+  min-height: 30px;
+}
+
+.result-card dl {
+  margin-bottom: 7px;
+}
+
+.result-card dl div {
+  padding: 4px 0;
+}
+
+.status-badge {
+  min-height: 32px;
+  font-size: 13px;
+}
+
+.result-calculate-button {
+  min-height: 38px;
+  margin-top: 8px;
+}
+
+.right-panel-content {
+  gap: 7px;
+}
+
+.canvas-panel {
+  grid-template-rows: 40px minmax(0, 1fr) 52px;
+}
+
+.tool-strip {
+  min-height: 40px;
+  padding: 5px 8px;
+  gap: 10px;
+}
+
+.tool-strip button {
+  min-height: 30px;
+  font-size: 14px;
+}
+
+.mark-toolbar {
+  min-height: 52px;
+  padding: 6px 10px;
+  gap: 8px;
+}
+
+.mark-toolbar .button {
+  min-height: 36px;
+  min-width: 116px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+#markTopButton {
+  min-width: 184px;
+}
+
+#clearMarksButton {
+  min-width: 146px;
+}
+
+.status-bar {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.status-bar span:first-child::before {
+  width: 13px;
+  height: 13px;
+}
+
+@media (max-width: 1366px) {
+  .workbench {
+    grid-template-columns: 240px minmax(0, 1fr) 330px;
+  }
+
+  .right-panel-content {
+    gap: 5px;
+  }
+
+  .right-panel .card {
+    padding: 7px 10px;
+  }
+
+  .right-panel .card h2 {
+    margin-bottom: 6px;
+  }
+
+  .right-panel .instructions p {
+    margin-bottom: 5px;
+  }
+
+  .right-panel .quality-box {
+    min-height: 28px;
+    padding: 4px 9px;
+  }
+
+  .right-panel .reading-controls {
+    margin-top: 5px;
+    padding-top: 5px;
+    gap: 5px;
+  }
+
+  .right-panel .reading-control-actions button {
+    min-height: 28px;
+  }
+
+  .right-panel .result-card dl {
+    margin-bottom: 5px;
+  }
+
+  .right-panel .result-card dl div {
+    padding: 3px 0;
+  }
+
+  .right-panel .status-badge {
+    min-height: 30px;
+  }
+
+  .right-panel .reason {
+    margin-top: 4px;
+  }
+
+  .right-panel .result-calculate-button {
+    min-height: 36px;
+    margin-top: 6px;
+  }
+
+  .header-actions .button {
+    padding: 0 12px;
+  }
+
+  .exam-bar {
+    grid-template-columns: 175px 180px 155px minmax(160px, 1fr) 205px 195px minmax(145px, 1.2fr);
+  }
+
+  .mark-toolbar .button {
+    min-width: 106px;
+    font-size: 12px;
+  }
+
+  #markTopButton {
+    min-width: 168px;
+  }
+
+  #clearMarksButton {
+    min-width: 136px;
+  }
+}
+
+@media (max-height: 850px) {
+  .app-shell {
+    gap: 7px;
+    padding: 8px 10px;
+  }
+
+  .app-header {
+    min-height: 54px;
+    padding: 6px 12px;
+  }
+
+  .brand-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .brand-text strong {
+    font-size: 26px;
+  }
+
+  .brand-text span {
+    font-size: 12px;
+  }
+
+  .button,
+  .header-actions .button {
+    min-height: 36px;
+  }
+
+  .exam-bar {
+    min-height: 76px;
+    padding: 22px 12px 7px;
+  }
+
+  input,
+  select,
+  .input-addon b {
+    height: 36px;
+  }
+
+  .step {
+    min-height: 44px;
+  }
+
+  .legend p {
+    margin: 7px 0;
+  }
+
+  .card {
+    padding: 8px;
+  }
+
+  .tool-strip {
+    min-height: 36px;
+  }
+
+  .canvas-panel {
+    grid-template-rows: 36px minmax(0, 1fr) 46px;
+  }
+
+  .mark-toolbar {
+    min-height: 46px;
+    padding: 5px 8px;
+  }
+
+  .mark-toolbar .button {
+    min-height: 34px;
+  }
+
+  .status-bar {
+    min-height: 30px;
+  }
+}
