@@ -10,7 +10,27 @@
     <link rel="apple-touch-icon" href="./assets/brand/apple-touch-icon.png">
     <link rel="manifest" href="./assets/brand/site.webmanifest?v=0.2.4">
     <meta name="theme-color" content="#071b35">
-    <link rel="stylesheet" href="./src/styles/main.css?v=0.2.7">
+    <script>
+      (function () {
+        function getCookie(name) {
+          const cookies = document.cookie ? document.cookie.split("; ") : [];
+          for (const cookie of cookies) {
+            const parts = cookie.split("=");
+            const key = decodeURIComponent(parts.shift());
+            const value = decodeURIComponent(parts.join("="));
+            if (key === name) return value;
+          }
+          return null;
+        }
+
+        const allowedThemes = ["auto", "light", "dark"];
+        const savedTheme = getCookie("taccheck_theme");
+        const theme = allowedThemes.includes(savedTheme) ? savedTheme : "auto";
+
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+    <link rel="stylesheet" href="./src/styles/main.css?v=0.2.8">
   </head>
   <body>
     <div class="app-shell">
@@ -23,6 +43,14 @@
           </div>
         </div>
         <div class="header-actions">
+          <label class="theme-setting">
+            <span>Tema da interface</span>
+            <select id="themeSelect" aria-label="Tema da interface">
+              <option value="auto">Automático pelo sistema</option>
+              <option value="light">Claro</option>
+              <option value="dark">Escuro</option>
+            </select>
+          </label>
           <button id="loadImageButton" type="button" class="button button-light">Carregar imagem</button>
           <button id="openCameraButton" type="button" class="button button-light">Usar câmera</button>
           <button id="calculateButton" type="button" class="button button-primary" onclick="window.TacCheckCalculate && window.TacCheckCalculate(event)">Calcular</button>
@@ -227,6 +255,6 @@
     </div>
 
     <input id="fileInput" type="file" accept="image/*" hidden>
-    <script type="module" src="./src/ui/app.js?v=0.2.5"></script>
+    <script type="module" src="./src/ui/app.js?v=0.2.6"></script>
   </body>
 </html>

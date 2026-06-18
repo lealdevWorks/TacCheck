@@ -16,6 +16,8 @@ const $ = (id) => document.getElementById(id);
 
 const APP_VERSION = "0.2.3";
 const HISTORY_STORAGE_KEY = "taccheck_analises";
+const THEME_COOKIE_NAME = "taccheck_theme";
+const THEME_VALUES = ["auto", "light", "dark"];
 const METHODOLOGY_TEXT = "A analise foi realizada por conferencia rapida em imagem digital do disco de tacografo, utilizando calibracao em pixels a partir das linhas reais de 40 km/h e 60 km/h impressas no disco. A linha de 50 km/h foi calculada automaticamente como ponto medio entre as referencias 40 km/h e 60 km/h. A velocidade indicada no disco foi obtida por uma linha de leitura paralela a escala, criada a partir de 1 ponto marcado no topo do registro e ajustada por deslocamento perpendicular. O resultado foi calculado pela diferenca entre a velocidade indicada no disco e a velocidade maxima real do ensaio, respeitando a tolerancia configurada.";
 
 const COLORS = {
@@ -61,6 +63,7 @@ const els = {
   openCameraButton: $("openCameraButton"),
   calculateButton: $("calculateButton"),
   saveButton: $("saveButton"),
+  themeSelect: $("themeSelect"),
   zoomInButton: $("zoomInButton"),
   zoomOutButton: $("zoomOutButton"),
   fitButton: $("fitButton"),
@@ -126,6 +129,7 @@ init();
 function init() {
   els.dateInput.value = todayInputDate();
   window.TacCheckCalculate = triggerCalculate;
+  initThemeSettings();
   bindEvents();
   updateUi();
   renderHistory();
@@ -133,6 +137,80 @@ function init() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("demo") === "1") {
     loadDemo();
+  }
+}
+
+function getCookie(name) {
+  const cookies = document.cookie ? document.cookie.split("; ") : [];
+
+  for (const cookie of cookies) {
+    const parts = cookie.split("=");
+    const key = decodeURIComponent(parts.shift());
+    const value = decodeURIComponent(parts.join("="));
+
+    if (key === name) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function getThemeCookiePath() {
+  return window.location.pathname.startsWith("/TacCheck/") ? "/TacCheck/" : "/";
+}
+
+function setCookie(name, value, days = 365) {
+  const maxAge = days * 24 * 60 * 60;
+
+  document.cookie = [
+    `${encodeURIComponent(name)}=${encodeURIComponent(value)}`,
+    `Max-Age=${maxAge}`,
+    `Path=${getThemeCookiePath()}`,
+    "SameSite=Lax"
+  ].join("; ");
+}
+
+function normalizeTheme(theme) {
+  return THEME_VALUES.includes(theme) ? theme : "auto";
+}
+
+function applyTheme(theme) {
+  const normalizedTheme = normalizeTheme(theme);
+  document.documentElement.setAttribute("data-theme", normalizedTheme);
+}
+
+function saveTheme(theme) {
+  const normalizedTheme = normalizeTheme(theme);
+  setCookie(THEME_COOKIE_NAME, normalizedTheme);
+  applyTheme(normalizedTheme);
+}
+
+function loadSavedTheme() {
+  return normalizeTheme(getCookie(THEME_COOKIE_NAME));
+}
+
+function initThemeSettings() {
+  const theme = loadSavedTheme();
+
+  applyTheme(theme);
+
+  if (!els.themeSelect) {
+    return;
+  }
+
+  els.themeSelect.value = theme;
+  els.themeSelect.addEventListener("change", () => {
+    saveTheme(els.themeSelect.value);
+  });
+
+  if (window.matchMedia) {
+    const systemThemeWatcher = window.matchMedia("(prefers-color-scheme: dark)");
+    systemThemeWatcher.addEventListener("change", () => {
+      if (loadSavedTheme() === "auto") {
+        applyTheme("auto");
+      }
+    });
   }
 }
 
