@@ -1723,7 +1723,7 @@ html[data-theme="dark"] .image-viewer {
 .exam-bar {
   min-height: 82px;
   gap: 8px;
-  padding: 24px 12px 8px;
+  padding: 28px 12px 6px;
 }
 
 .exam-bar::before {
@@ -1755,6 +1755,23 @@ select,
   border-radius: 8px;
 }
 
+.canvas-panel,
+.canvas-wrap,
+.image-viewer,
+.tool-strip,
+.mark-toolbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.canvas-panel::-webkit-scrollbar,
+.canvas-wrap::-webkit-scrollbar,
+.image-viewer::-webkit-scrollbar,
+.tool-strip::-webkit-scrollbar,
+.mark-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
 .steps {
   padding: 8px;
 }
@@ -1764,24 +1781,33 @@ select,
   gap: 8px;
   min-height: 48px;
   padding: 6px 10px;
+  align-items: center;
 }
 
 .step::before {
   width: 36px;
   height: 36px;
+  align-self: center;
+  justify-self: center;
 }
 
 .step strong {
   width: 28px;
   height: 28px;
+  align-self: center;
+  justify-self: center;
 }
 
 .step span {
+  align-self: center;
   font-size: 14px;
+  line-height: 1.12;
 }
 
 .step small {
+  margin-top: 3px;
   font-size: 12px;
+  line-height: 1.12;
 }
 
 .legend {
@@ -1864,6 +1890,7 @@ select,
   min-height: 40px;
   padding: 5px 8px;
   gap: 10px;
+  overflow: hidden;
 }
 
 .tool-strip button {
@@ -1874,14 +1901,31 @@ select,
 .mark-toolbar {
   min-height: 52px;
   padding: 6px 10px;
-  gap: 8px;
+  gap: 9px;
+  overflow: hidden;
 }
 
 .mark-toolbar .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
   min-height: 36px;
   min-width: 116px;
-  padding: 0 10px;
+  padding: 0 12px;
   font-size: 13px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.mark-toolbar .button::before {
+  flex: 0 0 auto;
+  margin-right: 0;
+  vertical-align: initial;
+}
+
+#clearMarksButton::before {
+  display: inline-block;
 }
 
 #markTopButton {
@@ -1901,6 +1945,21 @@ select,
 .status-bar span:first-child::before {
   width: 13px;
   height: 13px;
+}
+
+.empty-state {
+  width: min(380px, calc(100% - 48px));
+  min-height: 246px;
+  padding: 24px 28px;
+}
+
+.empty-state strong {
+  white-space: nowrap;
+  font-size: 17px;
+}
+
+.empty-state span {
+  max-width: 286px;
 }
 
 @media (max-width: 1366px) {
@@ -1970,6 +2029,7 @@ select,
 
   .mark-toolbar .button {
     min-width: 106px;
+    padding: 0 10px;
     font-size: 12px;
   }
 
@@ -2013,7 +2073,11 @@ select,
 
   .exam-bar {
     min-height: 76px;
-    padding: 22px 12px 7px;
+    padding: 25px 12px 5px;
+  }
+
+  .exam-bar::before {
+    top: 7px;
   }
 
   input,
@@ -2045,6 +2109,7 @@ select,
   .mark-toolbar {
     min-height: 46px;
     padding: 5px 8px;
+    gap: 7px;
   }
 
   .mark-toolbar .button {
@@ -2053,5 +2118,10 @@ select,
 
   .status-bar {
     min-height: 30px;
+  }
+
+  .empty-state {
+    min-height: 232px;
+    padding: 22px 24px;
   }
 }
