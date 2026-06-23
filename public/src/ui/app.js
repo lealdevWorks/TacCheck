@@ -14,7 +14,7 @@ import { ImageViewer } from "./viewer.js";
 
 const $ = (id) => document.getElementById(id);
 
-const APP_VERSION = "0.3.0";
+const APP_VERSION = "0.3.1";
 const HISTORY_STORAGE_KEY = "taccheck_analises";
 const THEME_COOKIE_NAME = "taccheck_theme";
 const THEME_VALUES = ["auto", "light", "dark"];
