@@ -1,119 +1,44 @@
 # Regras do Projeto TacCheck
 
-Este documento registra as regras atuais do TacCheck para consulta e versionamento.
+## Regra objetiva de velocidade
 
-## Objetivo do sistema
-
-O TacCheck e uma ferramenta web para conferencia rapida de disco de tacografo por imagem, usando calibracao por pixels na escala 40/60.
-
-O sistema deve apoiar a verificacao operacional da velocidade indicada no disco em comparacao com a velocidade maxima real do ensaio.
-
-## Regra principal de calculo
-
-O resultado final deve comparar:
-
-- velocidade indicada no disco;
-- velocidade maxima real do ensaio.
-
-Nao comparar o resultado final somente contra 50 km/h.
-
-Formula:
+O TacCheck compara a velocidade frequente estimada no disco/fita com a velocidade registrada no relatório de ensaio:
 
 ```text
-divergencia = velocidade_indicada - velocidade_maxima_ensaio
-limite_inferior = velocidade_maxima_ensaio - tolerancia
-limite_superior = velocidade_maxima_ensaio + tolerancia
+diferença = abs(velocidade_frequente_disco - velocidade_registrada_relatorio)
+limite_inferior = velocidade_registrada_relatorio - 4,000
+limite_superior = velocidade_registrada_relatorio + 4,000
 ```
 
-Resultado:
+A classificação, sem arredondamento prévio, é:
 
-- se `velocidade_indicada < limite_inferior`: reprovado por baixa indicacao;
-- se `velocidade_indicada > limite_superior`: reprovado por alta indicacao;
-- caso contrario: aprovado.
+- diferença até 3,500 km/h: dentro do limite;
+- diferença maior que 3,500 e menor que 4,000 km/h: atenção, próximo do limite;
+- diferença exatamente igual a 4,000 km/h: atenção crítica, revisar;
+- diferença superior a 4,000 km/h: possível reprovação.
 
-## Regra da escala 40/60
+A linha de 50 km/h é referência visual do ensaio. Ela e a faixa 45–55 km/h não são limites de reprovação. O sistema nunca deve apresentar reprovação automática.
 
-O operador deve marcar:
+## Escala e leitura frequente
 
-- linha 40 km/h;
-- linha 60 km/h.
+O operador marca pelo menos dois pontos nas linhas 40 e 60 km/h. A calibração usa coordenadas reais da imagem e projeta as demais velocidades no eixo 40 → 60. Referências desalinhadas devem gerar alerta pela diferença angular.
 
-Cada linha deve aceitar pelo menos 2 pontos. Um terceiro ponto pode ser usado para melhorar o ajuste da reta.
+A marca principal representa a velocidade frequente da região constante: centro do traço, mediana visual ou faixa predominante confirmada pelo operador. Não usar como leitura principal ponto isolado, borda, mancha, sombra ou falha de impressão.
 
-O sistema deve calcular a posicao de qualquer velocidade pela projecao no eixo 40 -> 60.
+## Picos e quedas
 
-Formula:
+O operador pode marcar o maior e o menor ponto real. Uma nova marca fora dos limites começa como suspeita e exige confirmação visual de:
 
-```text
-velocidade = 40 + ((posicao - posicao_40) / (posicao_60 - posicao_40)) * 20
-```
+- continuidade mínima do traço;
+- coerência com a espessura do registro;
+- ausência de sujeira, sombra ou falha de impressão.
 
-A linha 50 km/h deve ser calculada automaticamente como ponto medio entre 40 e 60.
+Pico acima do limite superior ou queda abaixo do limite inferior somente gera possível reprovação após confirmação manual. Ponto exatamente no limite gera atenção crítica. O operador pode confirmar, ignorar como ruído/sujeira ou ajustar a região.
 
-## Regra correta do registro
+## Evidência
 
-A leitura da velocidade indicada deve ser feita marcando somente o topo do registro da velocidade.
+A evidência salva inclui imagem, velocidade do relatório, velocidade frequente, diferença absoluta, limites dinâmicos, marcas e classificação de picos/quedas, confirmações do operador, qualidade da calibração e status. As linhas 40, 50, 60, relatório ±4 e leitura frequente devem aparecer na imagem marcada.
 
-O MVP nao deve pedir:
+## Testes obrigatórios
 
-- borda superior;
-- borda inferior;
-- centro da faixa;
-- media entre duas bordas.
-
-Fluxo correto:
-
-1. Marcar linha 40 km/h.
-2. Marcar linha 60 km/h.
-3. Calcular linha 50 km/h automaticamente.
-4. Marcar topo do registro da velocidade.
-5. Calcular velocidade indicada pela posicao do topo.
-6. Comparar com a velocidade maxima real do ensaio.
-
-A marcacao do topo deve aceitar:
-
-- 1 ponto no modo simples;
-- 2 pontos no modo recomendado;
-- 3 pontos opcionalmente para ajuste medio da linha.
-
-## Coordenadas
-
-Nunca calcular usando coordenadas visuais da tela.
-
-Toda marcacao feita no canvas deve ser convertida para coordenada real da imagem antes do calculo.
-
-## Evidencia visual
-
-A imagem marcada deve desenhar:
-
-- linha 40 km/h;
-- linha 60 km/h;
-- linha 50 km/h calculada;
-- velocidade maxima real do ensaio;
-- limite inferior;
-- limite superior;
-- linha de leitura do topo do registro;
-- resultado e motivo.
-
-## Testes obrigatorios
-
-Os testes automatizados devem cobrir:
-
-- caso real 1: `51,173 / 46,310`;
-- caso real 2: `52,101 / 47,740`;
-- aprovado dentro da tolerancia;
-- exatamente no limite;
-- linha 40 acima e 60 abaixo;
-- linha 60 acima e 40 abaixo;
-- linhas inclinadas;
-- zoom diferente de 100%;
-- conversao tela -> imagem;
-- leitura por topo do registro com 1, 2 e 3 pontos.
-
-## Metodo de leitura documentado
-
-Texto de referencia:
-
-```text
-A analise foi realizada por conferencia rapida em imagem digital do disco de tacografo, utilizando calibracao em pixels a partir das linhas reais de 40 km/h e 60 km/h impressas no disco. A linha de 50 km/h foi calculada automaticamente como ponto medio entre as referencias 40 km/h e 60 km/h. A velocidade indicada no disco foi obtida pela marcacao do topo do registro da velocidade, conforme criterio operacional de leitura. O resultado foi calculado pela diferenca entre a velocidade indicada no disco e a velocidade maxima real do ensaio, respeitando a tolerancia configurada.
-```
+Cobrir ao menos os pares relatório/disco `52/56`, `52/56,001`, `52/47,999`, `50/46` e `50/45,999`; picos em `56` e `56,001`; queda em `47,999`; marca isolada pendente de confirmação; e referências 40/50/60 desalinhadas.

@@ -30,7 +30,7 @@
         document.documentElement.setAttribute("data-theme", theme);
       })();
     </script>
-    <link rel="stylesheet" href="./src/styles/main.css?v=0.2.9">
+    <link rel="stylesheet" href="./src/styles/main.css?v=0.3.0">
   </head>
   <body>
     <div class="app-shell">
@@ -45,6 +45,7 @@
         <div class="header-actions">
           <button id="loadImageButton" type="button" class="button button-light">Carregar imagem</button>
           <button id="openCameraButton" type="button" class="button button-light">Usar câmera</button>
+          <button id="guideButton" type="button" class="button button-light">Guia de leitura</button>
           <button id="calculateButton" type="button" class="button button-primary" onclick="window.TacCheckCalculate && window.TacCheckCalculate(event)">Calcular</button>
           <button id="saveButton" type="button" class="button button-success">Salvar análise</button>
           <div class="settings-menu">
@@ -79,7 +80,7 @@
           </select>
         </label>
         <label>
-          <span>Velocidade máxima do ensaio</span>
+          <span>Velocidade registrada no relatório</span>
           <div class="input-addon">
             <input id="maxSpeedInput" placeholder="Informe" inputmode="decimal">
             <b>km/h</b>
@@ -88,16 +89,9 @@
         <label>
           <span>Tolerância</span>
           <div class="input-addon short">
-            <input id="toleranceInput" value="4,000" inputmode="decimal">
+            <input id="toleranceInput" value="4,000" readonly aria-label="Tolerância objetiva fixa">
             <b>km/h</b>
           </div>
-        </label>
-        <label>
-          <span>Critério</span>
-          <select id="criterionInput">
-            <option value="gt">&gt; tolerância</option>
-            <option value="gte">≥ tolerância</option>
-          </select>
         </label>
         <label class="wide-field">
           <span>Observação</span>
@@ -132,9 +126,9 @@
             <p><i class="line green"></i>40 km/h</p>
             <p><i class="line blue"></i>60 km/h</p>
             <p><i class="line red"></i>50 km/h</p>
-            <p><i class="line purple"></i>Velocidade máxima</p>
-            <p><i class="line dash"></i>Limites</p>
-            <p><i class="line yellow"></i>Linha de leitura</p>
+            <p><i class="line purple"></i>Velocidade do relatório</p>
+            <p><i class="line dash"></i>Limites por diferença</p>
+            <p><i class="line yellow"></i>Velocidade frequente</p>
           </section>
           </div>
         </aside>
@@ -154,14 +148,16 @@
             <canvas id="imageCanvas"></canvas>
             <div id="emptyState" class="empty-state">
               <strong>Carregue uma imagem do disco</strong>
-              <span>Depois marque as linhas 40, 60 e o topo do registro.</span>
+              <span>Depois marque as linhas 40, 60 e a velocidade frequente.</span>
             </div>
           </div>
           <div class="mark-toolbar">
             <button id="mark40Button" type="button" class="button button-light">Marcar 40</button>
             <button id="mark60Button" type="button" class="button button-light">Marcar 60</button>
-            <button id="markTopButton" type="button" class="button button-light">Marcar topo do registro</button>
-            <button id="clearMarksButton" type="button" class="button button-danger-light">Limpar marcações</button>
+            <button id="markTopButton" type="button" class="button button-light">Frequente</button>
+            <button id="markPeakButton" type="button" class="button button-light">Maior ponto</button>
+            <button id="markDropButton" type="button" class="button button-light">Menor ponto</button>
+            <button id="clearMarksButton" type="button" class="button button-danger-light">Limpar</button>
           </div>
         </section>
 
@@ -176,7 +172,7 @@
             </div>
             <div class="reading-controls">
               <div class="reading-control-head">
-                <span>Ajuste fino do topo</span>
+                <span>Ajuste fino da leitura frequente</span>
                 <strong id="readingOffsetText">0 px</strong>
               </div>
               <div class="reading-control-actions">
@@ -184,23 +180,40 @@
                 <button id="readingResetButton" type="button" title="Zerar deslocamento">0</button>
                 <button id="readingDownButton" type="button" title="Mover a linha para baixo. Shift = 5 px">+</button>
               </div>
-              <p id="readingPreviewText">Clique em 1 ponto no topo do registro.</p>
+              <p id="readingPreviewText">Clique na faixa predominante do registro.</p>
             </div>
           </section>
 
           <section class="card result-card">
-            <h2>Resultado da análise</h2>
+            <h2>Diferença com o relatório</h2>
             <dl>
-              <div><dt>Vel. máxima do ensaio</dt><dd id="maxSpeedOutput">-</dd></div>
-              <div><dt>Vel. indicada no disco</dt><dd id="indicatedSpeedOutput">-</dd></div>
-              <div><dt>Divergência</dt><dd id="divergenceOutput">-</dd></div>
-              <div><dt>Limite inferior</dt><dd id="lowerLimitOutput">-</dd></div>
-              <div><dt>Limite superior</dt><dd id="upperLimitOutput">-</dd></div>
+              <div><dt>Velocidade registrada no relatório</dt><dd id="maxSpeedOutput">-</dd></div>
+              <div><dt>Velocidade frequente no disco</dt><dd id="indicatedSpeedOutput">-</dd></div>
+              <div><dt>Diferença calculada</dt><dd id="divergenceOutput">-</dd></div>
+              <div><dt>Limite inferior por diferença</dt><dd id="lowerLimitOutput">-</dd></div>
+              <div><dt>Limite superior por diferença</dt><dd id="upperLimitOutput">-</dd></div>
               <div><dt>Tolerância</dt><dd id="toleranceOutput">-</dd></div>
             </dl>
             <div id="statusBadge" class="status-badge muted">Aguardando cálculo</div>
             <p id="reasonOutput" class="reason">Marque a escala e o registro para calcular.</p>
             <button id="calculateResultButton" type="button" class="button button-primary result-calculate-button" onclick="window.TacCheckCalculate && window.TacCheckCalculate(event)">Calcular agora</button>
+          </section>
+
+          <section class="card occurrence-card">
+            <h2>Picos e quedas fora do limite</h2>
+            <dl>
+              <div><dt>Maior velocidade real detectada</dt><dd id="highestSpeedOutput">Não marcada</dd></div>
+              <div><dt>Menor velocidade real detectada</dt><dd id="lowestSpeedOutput">Não marcada</dd></div>
+              <div><dt>Limite superior permitido</dt><dd id="peakLimitOutput">-</dd></div>
+              <div><dt>Limite inferior permitido</dt><dd id="dropLimitOutput">-</dd></div>
+            </dl>
+            <div id="occurrenceStatus" class="status-badge muted">Sem pico fora do limite</div>
+            <p id="occurrenceReason" class="reason">Marcas opcionais devem ser confirmadas visualmente.</p>
+            <div id="occurrenceActions" class="occurrence-actions" hidden>
+              <button id="confirmOccurrenceButton" type="button" class="button button-danger-light">Confirmar pico/queda real</button>
+              <button id="ignoreOccurrenceButton" type="button" class="button button-light">Ignorar como ruído/sujeira</button>
+              <button id="adjustRegionButton" type="button" class="button button-light">Ajustar região selecionada</button>
+            </div>
           </section>
 
           <section class="card actions-card">
@@ -220,9 +233,32 @@
 
       <footer class="status-bar">
         <span id="statusText">Sistema pronto</span>
-        <span class="version-text">TacCheck v0.2.3 · © 2026 Leal DevWorks</span>
+        <span class="version-text">TacCheck v0.3.0 · © 2026 Leal DevWorks</span>
         <span id="lastCalcText">Último cálculo: -</span>
       </footer>
+    </div>
+
+    <div id="guideModal" class="camera-modal guide-modal" hidden>
+      <article class="camera-dialog guide-dialog" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+        <div class="camera-header">
+          <div><h2 id="guideTitle">Guia de leitura auxiliar da velocidade no disco</h2></div>
+          <button id="closeGuideButton" type="button" class="camera-icon-button" title="Fechar guia">×</button>
+        </div>
+        <div class="guide-content">
+          <p>Este guia ajuda o operador a comparar a velocidade lida no disco/fita com a velocidade registrada no relatório de ensaio. A análise usa a velocidade do relatório como referência e calcula o limite de ±4 km/h.</p>
+          <ol>
+            <li><strong>Informe o valor do relatório:</strong> digite a velocidade registrada no relatório de ensaio. Esse valor será a referência dos limites.</li>
+            <li><strong>Marque as referências do disco:</strong> marque 40 km/h e 60 km/h. A linha de 50 km/h será calculada para conferência visual.</li>
+            <li><strong>Observe a linha de 50 km/h:</strong> ela localiza a região esperada, mas a aprovação por diferença não é calculada contra 50 fixo.</li>
+            <li><strong>Observe os limites dinâmicos:</strong> limite inferior = relatório − 4 km/h; limite superior = relatório + 4 km/h.</li>
+            <li><strong>Selecione a região constante:</strong> evite subida, descida, repouso, borrões e falhas.</li>
+            <li><strong>Leia a velocidade frequente:</strong> considere o centro e a faixa predominante, não um ponto isolado.</li>
+            <li><strong>Verifique picos e quedas:</strong> marque extremos reais e confirme visualmente a continuidade e a espessura do traço.</li>
+            <li><strong>Interprete o limite:</strong> 4,000 km/h é atenção crítica; somente diferença superior a 4,000 km/h gera possível reprovação.</li>
+            <li><strong>Salve a evidência:</strong> a imagem, o relatório, a leitura, os limites, as ocorrências e o status ficam registrados.</li>
+          </ol>
+        </div>
+      </article>
     </div>
 
     <div id="cameraModal" class="camera-modal" hidden>
@@ -259,6 +295,6 @@
     </div>
 
     <input id="fileInput" type="file" accept="image/*" hidden>
-    <script type="module" src="./src/ui/app.js?v=0.2.7"></script>
+    <script type="module" src="./src/ui/app.js?v=0.3.0"></script>
   </body>
 </html>

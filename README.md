@@ -4,7 +4,7 @@
 
 # TacCheck
 
-Primeira entrega do TacCheck como app web estatico para conferencia rapida de disco de tacografo por escala 40/60.
+Aplicativo web estático para conferência de disco de tacógrafo por escala 40/60 e comparação objetiva com o relatório de ensaio.
 
 ## Rodar localmente
 
@@ -46,7 +46,7 @@ http://127.0.0.1:8765/index.html?demo=1
 
 ## Metodologia
 
-A analise foi realizada por conferencia rapida em imagem digital do disco de tacografo, utilizando calibracao em pixels a partir das linhas reais de 40 km/h e 60 km/h impressas no disco. A linha de 50 km/h foi calculada automaticamente como ponto medio entre as referencias 40 km/h e 60 km/h. A velocidade indicada no disco foi obtida pela marcacao do topo do registro da velocidade, conforme criterio operacional de leitura. O resultado foi calculado pela diferenca entre a velocidade indicada no disco e a velocidade maxima real do ensaio, respeitando a tolerancia configurada.
+A análise compara a velocidade frequente estimada no disco com a velocidade registrada no relatório. Os limites são dinâmicos (`relatório ±4,000 km/h`), e somente diferença estritamente superior a 4 km/h gera alerta de possível reprovação. A linha de 50 km/h é apenas referência visual. Picos e quedas marcados exigem confirmação visual antes da classificação final.
 
 ## Provas geradas
 

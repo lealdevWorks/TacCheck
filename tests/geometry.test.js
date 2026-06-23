@@ -60,3 +60,13 @@ test("zoom diferente de 100% preserva coordenada real da imagem", () => {
   close(converted.x, 200);
   close(converted.y, 100);
 });
+
+test("referências 40 e 60 desalinhadas exigem revisão", () => {
+  const calibration = buildCalibration(
+    [{ x: 0, y: 300 }, { x: 800, y: 300 }],
+    [{ x: 0, y: 100 }, { x: 800, y: 200 }]
+  );
+
+  assert.equal(calibration.parallelism, "critico");
+  assert.ok(calibration.angularDifference > 5);
+});

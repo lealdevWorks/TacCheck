@@ -551,6 +551,72 @@ html[data-theme="dark"] .image-viewer {
   margin: 0 0 8px;
 }
 
+.occurrence-card dl {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+.occurrence-card dl div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.occurrence-card dt {
+  color: var(--text-muted, #94a3b8);
+  font-size: 11px;
+}
+
+.occurrence-card dd {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.occurrence-actions {
+  display: grid;
+  gap: 7px;
+}
+
+.occurrence-actions[hidden] {
+  display: none;
+}
+
+.guide-dialog {
+  width: min(780px, calc(100vw - 32px));
+  max-height: min(720px, calc(100vh - 32px));
+}
+
+.guide-content {
+  padding: 0 24px 24px;
+  overflow: auto;
+  color: var(--text-color, #e2e8f0);
+  line-height: 1.5;
+}
+
+.guide-content ol {
+  display: grid;
+  gap: 10px;
+  padding-left: 24px;
+}
+
+html.history-focus .right-panel-content > .instructions,
+html.history-focus .right-panel-content > .result-card,
+html.history-focus .right-panel-content > .occurrence-card,
+html.history-focus .right-panel-content > .actions-card {
+  display: none;
+}
+
+html.history-focus .history-card {
+  display: block;
+}
+
 .result-card dl div {
   display: flex;
   justify-content: space-between;
@@ -2028,9 +2094,10 @@ select,
   justify-content: center;
   gap: 9px;
   min-height: 36px;
-  min-width: 116px;
-  padding: 0 12px;
-  font-size: 13px;
+  flex: 1 1 96px;
+  min-width: 0;
+  padding: 0 6px;
+  font-size: 11px;
   font-weight: 850;
   line-height: 1;
 }

@@ -1,71 +1,76 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculateResult, parseNumber } from "../src/core/tolerance.js";
+import {
+  OCCURRENCE_STATUS,
+  RESULT_STATUS,
+  calculateResult,
+  classifyOccurrences,
+  parseNumber
+} from "../src/core/tolerance.js";
 
-function close(actual, expected, tolerance = 0.001) {
-  assert.ok(
-    Math.abs(actual - expected) <= tolerance,
-    `expected ${actual} to be within ${tolerance} of ${expected}`
-  );
+const cases = [
+  [52, 56, 4, RESULT_STATUS.CRITICAL],
+  [52, 56.001, 4.001, RESULT_STATUS.POSSIBLE_FAILURE],
+  [52, 47.999, 4.001, RESULT_STATUS.POSSIBLE_FAILURE],
+  [50, 46, 4, RESULT_STATUS.CRITICAL],
+  [50, 45.999, 4.001, RESULT_STATUS.POSSIBLE_FAILURE]
+];
+
+for (const [reportSpeed, indicatedSpeed, difference, status] of cases) {
+  test(`relatório ${reportSpeed} / disco ${indicatedSpeed}`, () => {
+    const result = calculateResult({ reportSpeed, indicatedSpeed });
+    assert.ok(Math.abs(result.divergenceAbs - difference) < 1e-9);
+    assert.equal(result.status, status);
+    assert.equal(result.possibleFailure, difference > 4);
+  });
 }
 
-test("caso real 1 reprova abaixo do limite", () => {
-  const result = calculateResult({
-    maxSpeed: 51.173,
-    indicatedSpeed: 46.31,
-    tolerance: 4
-  });
-
-  close(result.divergence, -4.863);
-  close(result.lowerLimit, 47.173);
-  close(result.upperLimit, 55.173);
-  close(result.outsideBy, 0.863);
-  assert.equal(result.result, "REPROVADO");
-  assert.equal(result.reason, "Abaixo do limite por 0,863 km/h.");
+test("classifica as quatro faixas sem arredondar antes", () => {
+  assert.equal(calculateResult({ reportSpeed: 50, indicatedSpeed: 53.5 }).status, RESULT_STATUS.WITHIN);
+  assert.equal(calculateResult({ reportSpeed: 50, indicatedSpeed: 53.501 }).status, RESULT_STATUS.NEAR);
+  assert.equal(calculateResult({ reportSpeed: 50, indicatedSpeed: 54 }).status, RESULT_STATUS.CRITICAL);
+  assert.equal(calculateResult({ reportSpeed: 50, indicatedSpeed: 54.0001 }).status, RESULT_STATUS.POSSIBLE_FAILURE);
+  assert.equal(calculateResult({ reportSpeed: 50, indicatedSpeed: 54.0001 }).roundingWarning, true);
 });
 
-test("caso real 2 reprova abaixo do limite", () => {
-  const result = calculateResult({
-    maxSpeed: 52.101,
-    indicatedSpeed: 47.74,
-    tolerance: 4
-  });
-
-  close(result.divergence, -4.361);
-  close(result.lowerLimit, 48.101);
-  close(result.upperLimit, 56.101);
-  close(result.outsideBy, 0.361);
-  assert.equal(result.result, "REPROVADO");
-  assert.equal(result.reason, "Abaixo do limite por 0,361 km/h.");
+test("limites são sempre derivados da velocidade do relatório", () => {
+  const result = calculateResult({ reportSpeed: 52, indicatedSpeed: 52 });
+  assert.equal(result.lowerLimit, 48);
+  assert.equal(result.upperLimit, 56);
 });
 
-test("aprova dentro da tolerancia", () => {
-  const result = calculateResult({
-    maxSpeed: 52.101,
-    indicatedSpeed: 48.5,
-    tolerance: 4
-  });
-
-  close(result.divergence, -3.601);
-  assert.equal(result.result, "APROVADO");
+test("pico e queda exatamente no limite exigem revisão", () => {
+  const result = classifyOccurrences({ highestSpeed: 56, lowestSpeed: 48, lowerLimit: 48, upperLimit: 56 });
+  assert.equal(result.peak.status, OCCURRENCE_STATUS.CRITICAL);
+  assert.equal(result.drop.status, OCCURRENCE_STATUS.CRITICAL);
 });
 
-test("exatamente no limite respeita criterio configurado", () => {
-  const approved = calculateResult({
-    maxSpeed: 52,
-    indicatedSpeed: 48,
-    tolerance: 4,
-    failCriterion: "gt"
+test("pico confirmado acima e queda confirmada abaixo geram possível reprovação", () => {
+  const result = classifyOccurrences({
+    highestSpeed: 56.001,
+    lowestSpeed: 47.999,
+    lowerLimit: 48,
+    upperLimit: 56,
+    peakConfirmation: "confirmed",
+    dropConfirmation: "confirmed"
   });
-  const failed = calculateResult({
-    maxSpeed: 52,
-    indicatedSpeed: 48,
-    tolerance: 4,
-    failCriterion: "gte"
-  });
+  assert.equal(result.peak.status, OCCURRENCE_STATUS.POSSIBLE_FAILURE);
+  assert.equal(result.drop.status, OCCURRENCE_STATUS.POSSIBLE_FAILURE);
+});
 
-  assert.equal(approved.result, "APROVADO");
-  assert.equal(failed.result, "REPROVADO");
+test("marca isolada permanece suspeita até confirmação manual", () => {
+  const result = classifyOccurrences({ highestSpeed: 56.5, lowerLimit: 48, upperLimit: 56 });
+  assert.equal(result.status, OCCURRENCE_STATUS.SUSPECTED);
+});
+
+test("ocorrência ignorada como ruído não gera alerta", () => {
+  const result = classifyOccurrences({
+    highestSpeed: 60,
+    lowerLimit: 48,
+    upperLimit: 56,
+    peakConfirmation: "ignored"
+  });
+  assert.equal(result.status, OCCURRENCE_STATUS.CLEAR);
 });
 
 test("parseNumber aceita decimal brasileiro e decimal com ponto", () => {
