@@ -144,7 +144,7 @@ export function speedFromPoint(calibration, point) {
 
 export function buildRegisterTop(topPoints, calibration, offsetPx = 0) {
   if (!Array.isArray(topPoints) || topPoints.length < 1) {
-    throw new Error("O topo do registro precisa de pelo menos 1 ponto.");
+    throw new Error("A velocidade frequente precisa de pelo menos 1 ponto.");
   }
 
   const points = topPoints.map((point) => makePoint(point.x, point.y));

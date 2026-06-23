@@ -121,6 +121,8 @@ const els = {
   dropLimitOutput: $("dropLimitOutput"),
   occurrenceStatus: $("occurrenceStatus"),
   occurrenceReason: $("occurrenceReason"),
+  occurrenceDetails: $("occurrenceDetails"),
+  occurrenceSummary: $("occurrenceSummary"),
   occurrenceActions: $("occurrenceActions"),
   confirmOccurrenceButton: $("confirmOccurrenceButton"),
   ignoreOccurrenceButton: $("ignoreOccurrenceButton"),
@@ -157,6 +159,9 @@ function init() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("guide") === "1") {
     els.guideModal.hidden = false;
+  }
+  if (params.get("advanced") === "1") {
+    openOccurrencePanel();
   }
   if (params.get("demo") === "1") {
     loadDemo(params.get("case") || "default", params.get("save") === "1");
@@ -321,6 +326,10 @@ function bindEvents() {
   els.markTopButton.addEventListener("click", () => setMode("registerTop"));
   els.markPeakButton.addEventListener("click", () => setMode("peak"));
   els.markDropButton.addEventListener("click", () => setMode("drop"));
+  els.occurrenceDetails.addEventListener("toggle", () => {
+    updateUi();
+    viewer.draw();
+  });
   els.confirmOccurrenceButton.addEventListener("click", () => setOccurrenceConfirmation("confirmed"));
   els.ignoreOccurrenceButton.addEventListener("click", () => setOccurrenceConfirmation("ignored"));
   els.adjustRegionButton.addEventListener("click", adjustOccurrenceRegion);
@@ -636,6 +645,9 @@ function setMode(mode) {
     setStatus("Carregue uma imagem antes de marcar.");
     return;
   }
+  if (mode === "peak" || mode === "drop") {
+    openOccurrencePanel();
+  }
   state.mode = mode;
   updateModeText();
 }
@@ -756,7 +768,7 @@ function validateBeforeSpeedRequest() {
   if (!state.image) throw new Error("Carregue uma imagem.");
   if (state.marks.line40.length < 2) throw new Error("Marque pelo menos 2 pontos na linha 40 km/h.");
   if (state.marks.line60.length < 2) throw new Error("Marque pelo menos 2 pontos na linha 60 km/h.");
-  if (state.marks.registerTop.length < 1) throw new Error("Marque pelo menos 1 ponto no topo do registro.");
+  if (state.marks.registerTop.length < 1) throw new Error("Marque a velocidade frequente na região constante.");
 }
 
 function getMaxSpeedForCalculation() {
@@ -807,7 +819,7 @@ function getReadingPreview() {
 
 function adjustReadingOffset(direction, event) {
   if (!state.marks.registerTop.length) {
-    setStatus("Marque 1 ponto no topo do registro antes de ajustar.");
+    setStatus("Marque a velocidade frequente antes de ajustar.");
     return;
   }
 
@@ -861,19 +873,22 @@ function drawScene(ctx, viewport, rect) {
   drawPointSet(ctx, state.marks.line40, COLORS.line40);
   drawPointSet(ctx, state.marks.line60, COLORS.line60);
   drawPointSet(ctx, state.marks.registerTop, COLORS.register);
-  drawPointSet(ctx, state.marks.peak, COLORS.peak);
-  drawPointSet(ctx, state.marks.drop, COLORS.drop);
+  const showAdvancedOccurrences = shouldShowAdvancedOccurrences();
+  if (showAdvancedOccurrences) {
+    drawPointSet(ctx, state.marks.peak, COLORS.peak);
+    drawPointSet(ctx, state.marks.drop, COLORS.drop);
+  }
 
   if (state.lastAnalysis) {
-    drawEvidence(ctx, viewport, state.lastAnalysis, rect);
+    drawEvidence(ctx, viewport, state.lastAnalysis, rect, { showAdvancedOccurrences });
   } else {
     const preview = getReadingPreview();
     if (preview) {
       const labels = createCanvasLabelLayout(rect);
       drawLineAtCenter(ctx, preview.calibration, preview.register.line.center, COLORS.register, {
         dashed: false,
-        label: "TOPO",
-        importance: "low",
+        label: "FREQUENTE",
+        importance: "secondary",
         normalOffset: 26,
         lineOffset: 82
       }, labels);
@@ -882,27 +897,45 @@ function drawScene(ctx, viewport, rect) {
   ctx.restore();
 }
 
-function drawEvidence(ctx, viewport, analysis, rect = null) {
+function shouldShowAdvancedOccurrences(analysis = state.lastAnalysis) {
+  const status = analysis?.occurrences?.status || "";
+  const hasOccurrenceAlert = status && status !== "SEM_PICO_FORA_DO_LIMITE";
+  return Boolean(
+    els.occurrenceDetails?.open ||
+    state.mode === "peak" ||
+    state.mode === "drop" ||
+    hasOccurrenceAlert
+  );
+}
+
+function openOccurrencePanel() {
+  if (els.occurrenceDetails) {
+    els.occurrenceDetails.open = true;
+  }
+}
+
+function drawEvidence(ctx, viewport, analysis, rect = null, options = {}) {
   const reportSpeed = analysis.result.reportSpeed;
   const lower = analysis.result.lowerLimit;
   const upper = analysis.result.upperLimit;
   const indicated = analysis.result.indicatedSpeed;
   const labels = createCanvasLabelLayout(rect);
+  const showAdvancedOccurrences = options.showAdvancedOccurrences ?? shouldShowAdvancedOccurrences(analysis);
 
   drawSpeedLine(ctx, analysis.calibration, 40, COLORS.line40, {
-    label: "40 km/h",
+    label: "",
     normalOffset: 24,
     lineOffset: -96,
     importance: "low"
   }, labels);
   drawSpeedLine(ctx, analysis.calibration, 60, COLORS.line60, {
-    label: "60 km/h",
+    label: "",
     normalOffset: -24,
     lineOffset: 94,
     importance: "low"
   }, labels);
   drawSpeedLine(ctx, analysis.calibration, 50, COLORS.line50, {
-    label: "50 km/h",
+    label: "",
     normalOffset: -22,
     lineOffset: 24,
     importance: "normal"
@@ -933,14 +966,14 @@ function drawEvidence(ctx, viewport, analysis, rect = null) {
     lineOffset: 126,
     importance: "primary"
   }, labels);
-  if (analysis.occurrences.highestSpeed !== null) {
+  if (showAdvancedOccurrences && analysis.occurrences.highestSpeed !== null) {
     drawSpeedLine(ctx, analysis.calibration, analysis.occurrences.highestSpeed, COLORS.peak, {
       label: `PICO ${formatNumber(analysis.occurrences.highestSpeed)}`,
       importance: "secondary",
       lineOffset: 176
     }, labels);
   }
-  if (analysis.occurrences.lowestSpeed !== null) {
+  if (showAdvancedOccurrences && analysis.occurrences.lowestSpeed !== null) {
     drawSpeedLine(ctx, analysis.calibration, analysis.occurrences.lowestSpeed, COLORS.drop, {
       label: `QUEDA ${formatNumber(analysis.occurrences.lowestSpeed)}`,
       importance: "secondary",
@@ -1092,44 +1125,44 @@ function drawCanvasTag(ctx, tag, layout) {
 function canvasTagStyle(importance) {
   return {
     primary: {
-      height: 28,
-      paddingX: 9,
-      chipWidth: 5,
-      chipHeight: 18,
-      chipGap: 8,
-      radius: 7,
-      fontSize: 13,
+      height: 24,
+      paddingX: 7,
+      chipWidth: 4,
+      chipHeight: 14,
+      chipGap: 6,
+      radius: 6,
+      fontSize: 11,
       weight: 900,
-      fillAlpha: 0.86,
-      borderAlpha: 0.92,
+      fillAlpha: 0.78,
+      borderAlpha: 0.82,
       chipAlpha: 1,
       textColor: "#fff8d6"
     },
     strong: {
-      height: 25,
-      paddingX: 8,
-      chipWidth: 5,
-      chipHeight: 15,
-      chipGap: 7,
-      radius: 7,
-      fontSize: 12,
+      height: 23,
+      paddingX: 7,
+      chipWidth: 4,
+      chipHeight: 13,
+      chipGap: 6,
+      radius: 6,
+      fontSize: 11,
       weight: 850,
-      fillAlpha: 0.82,
-      borderAlpha: 0.82,
+      fillAlpha: 0.76,
+      borderAlpha: 0.78,
       chipAlpha: 0.95,
       textColor: "#f3efff"
     },
     secondary: {
-      height: 24,
-      paddingX: 8,
+      height: 22,
+      paddingX: 7,
       chipWidth: 4,
-      chipHeight: 14,
-      chipGap: 7,
+      chipHeight: 12,
+      chipGap: 6,
       radius: 6,
-      fontSize: 12,
+      fontSize: 10,
       weight: 800,
-      fillAlpha: 0.78,
-      borderAlpha: 0.72,
+      fillAlpha: 0.7,
+      borderAlpha: 0.68,
       chipAlpha: 0.86,
       textColor: "#f3f7ff"
     },
@@ -1252,12 +1285,12 @@ function updateUi() {
   els.imageStepStatus.textContent = state.image ? "carregada" : "pendente";
   els.scaleStepStatus.textContent = `${state.marks.line40.length}/2 40 | ${state.marks.line60.length}/2 60`;
   els.registerStepStatus.textContent = state.marks.registerTop.length
-    ? "1/1 topo"
+    ? "frequente marcada"
     : "pendente";
   els.mark40Button.textContent = state.marks.line40.length >= 2 ? "Remarcar 40" : "Marcar 40";
   els.mark60Button.textContent = state.marks.line60.length >= 2 ? "Remarcar 60" : "Marcar 60";
-  els.markPeakButton.textContent = state.marks.peak.length ? "Remarcar maior" : "Maior ponto";
-  els.markDropButton.textContent = state.marks.drop.length ? "Remarcar menor" : "Menor ponto";
+  els.markPeakButton.textContent = state.marks.peak.length ? "Remarcar pico superior" : "Marcar pico superior";
+  els.markDropButton.textContent = state.marks.drop.length ? "Remarcar queda inferior" : "Marcar queda inferior";
   els.resultStepStatus.textContent = state.lastAnalysis || state.lastSnapshot ? "calculado" : "aguardando";
   els.calculateButton.disabled = false;
   els.calculateResultButton.disabled = false;
@@ -1294,10 +1327,10 @@ function updateModeText() {
     line40: ["Marcar 40 km/h", "Clique em 2 pontos na linha 40. Um 3o ponto melhora a reta."],
     line60: ["Marcar 60 km/h", "Clique em 2 pontos na linha 60. A escala usa 40 -> 60."],
     registerTop: ["Velocidade frequente", "Clique no centro da faixa predominante da região constante, evitando extremos isolados."],
-    peak: ["Marcar maior ponto", "Marque apenas um pico com continuidade e espessura coerentes com o traço."],
-    drop: ["Marcar menor ponto", "Marque apenas uma queda com continuidade e espessura coerentes com o traço."]
+    peak: ["Pico superior opcional", "Marque somente se houver suspeita real de pico fora do limite superior."],
+    drop: ["Queda inferior opcional", "Marque somente se houver suspeita real de queda fora do limite inferior."]
   };
-  const [title, text] = texts[state.mode] || ["Como marcar", "Carregue a imagem. Marque 40, 60 e a velocidade frequente."];
+  const [title, text] = texts[state.mode] || ["Como marcar", "Fluxo principal: imagem, escala 40/60, velocidade frequente e valor do relatório."];
   els.modeTitle.textContent = title;
   els.modeText.textContent = text;
 }
@@ -1313,11 +1346,11 @@ function updateQuality(readiness = getUiReadiness()) {
     return;
   }
   if (!readiness.hasRegister) {
-    els.qualityText.textContent = "escala marcada | aguardando topo";
+    els.qualityText.textContent = "escala marcada | aguardando frequente";
     return;
   }
   if (!readiness.hasTolerance) {
-    els.qualityText.textContent = "topo marcado | aguardando tolerancia";
+    els.qualityText.textContent = "frequente marcada | aguardando tolerancia";
     return;
   }
   els.qualityText.textContent = "pronto para calcular | linha paralela";
@@ -1379,7 +1412,7 @@ function readinessMessage(reason) {
   return {
     "aguardando imagem": "Carregue uma imagem para iniciar a analise.",
     "aguardando escala": "Marque 2 pontos na linha 40 e 2 pontos na linha 60.",
-    "aguardando topo do registro": "Marque pelo menos 1 ponto no topo do registro.",
+    "aguardando velocidade frequente": "Marque a velocidade frequente da região constante.",
     "aguardando velocidade maxima": "Informe a velocidade registrada no relatório.",
     "aguardando tolerancia": "Informe uma tolerancia valida."
   }[reason] || "Complete os dados para calcular.";
@@ -1407,14 +1440,23 @@ function updateOccurrenceResult(occurrences) {
   els.occurrenceStatus.textContent = occurrences.label;
   const possible = occurrences.status === "POSSIVEL_REPROVACAO";
   const suspected = occurrences.status === "SUSPEITA_FORA_DO_LIMITE";
+  const critical = occurrences.status === "ATENCAO_CRITICA";
   els.occurrenceStatus.className = `status-badge ${possible ? "error" : suspected ? "ready" : occurrences.status === "SEM_PICO_FORA_DO_LIMITE" ? "approved" : "ready"}`;
+  els.occurrenceSummary.textContent = possible
+    ? "Confirmado"
+    : suspected
+      ? "Suspeita"
+      : critical
+        ? "Revisar"
+        : "Opcional";
+  els.occurrenceDetails.closest(".occurrence-card").classList.toggle("has-alert", suspected || possible || critical);
   els.occurrenceReason.textContent = suspected
-    ? "Suspeita de pico/queda fora do limite. Confirmar visualmente."
+    ? "Suspeita de pico/queda fora do limite. Revise visualmente."
     : possible
       ? "Ponto real confirmado fora do limite dinâmico do relatório."
-      : occurrences.status === "ATENCAO_CRITICA"
+      : critical
         ? "Ponto exatamente no limite. Revisar a leitura."
-        : "Nenhum extremo marcado ultrapassa os limites calculados.";
+        : "Picos e quedas são opcionais e não bloqueiam o cálculo principal.";
   els.occurrenceActions.hidden = !suspected;
 }
 
@@ -1772,6 +1814,7 @@ function clearMarks(resetStatus = true) {
   state.lastAnalysis = null;
   state.lastSnapshot = null;
   state.lastError = null;
+  if (els.occurrenceDetails) els.occurrenceDetails.open = false;
   if (resetStatus) setStatus("Marcacoes limpas.");
   resetResult();
   updateUi();
@@ -1809,11 +1852,13 @@ function resetResult() {
   els.dropLimitOutput.textContent = "-";
   els.occurrenceStatus.textContent = "Sem pico fora do limite";
   els.occurrenceStatus.className = "status-badge muted";
-  els.occurrenceReason.textContent = "Marcas opcionais devem ser confirmadas visualmente.";
+  els.occurrenceSummary.textContent = "Opcional";
+  els.occurrenceDetails.closest(".occurrence-card").classList.remove("has-alert");
+  els.occurrenceReason.textContent = "Picos e quedas são opcionais e não bloqueiam o cálculo principal.";
   els.occurrenceActions.hidden = true;
   els.statusBadge.textContent = "Aguardando calculo";
   els.statusBadge.className = "status-badge muted";
-  els.reasonOutput.textContent = "Marque a escala e o topo do registro para calcular.";
+  els.reasonOutput.textContent = "Marque a escala e a velocidade frequente para calcular.";
 }
 
 function modeLabel(mode) {
@@ -1821,8 +1866,8 @@ function modeLabel(mode) {
     line40: "Linha 40",
     line60: "Linha 60",
     registerTop: "Velocidade frequente",
-    peak: "Maior ponto",
-    drop: "Menor ponto"
+    peak: "Pico superior",
+    drop: "Queda inferior"
   }[mode] || "Marcacao";
 }
 
@@ -1875,6 +1920,7 @@ function loadDemo(scenario = "default", saveAfterCalculation = false) {
     const scenarios = {
       critical: { report: 52, frequent: 56 },
       failure: { report: 52, frequent: 56.001 },
+      "peak-suspect": { report: 52, frequent: 52, peak: 56.001, peakConfirmation: "suspected" },
       peak: { report: 52, frequent: 52, peak: 56.001 },
       drop: { report: 52, frequent: 52, drop: 47.999 },
       default: { report: 52.101, frequent: 47.74 }
@@ -1884,12 +1930,21 @@ function loadDemo(scenario = "default", saveAfterCalculation = false) {
     state.marks.peak = selected.peak ? [pointForSpeed(calibration, selected.peak)] : [];
     state.marks.drop = selected.drop ? [pointForSpeed(calibration, selected.drop)] : [];
     state.occurrenceConfirmation = {
-      peak: selected.peak ? "confirmed" : "suspected",
-      drop: selected.drop ? "confirmed" : "suspected"
+      peak: selected.peak ? selected.peakConfirmation || "confirmed" : "suspected",
+      drop: selected.drop ? selected.dropConfirmation || "confirmed" : "suspected"
     };
     state.readingOffsetPx = 0;
     els.maxSpeedInput.value = formatNumber(selected.report);
     calculate({ reportSpeed: selected.report });
+    if (new URLSearchParams(window.location.search).get("advanced") === "1") {
+      openOccurrencePanel();
+      viewer.draw();
+      requestAnimationFrame(() => {
+        const card = els.occurrenceDetails.closest(".card");
+        const panel = card.closest(".right-panel-content");
+        panel.scrollTop = Math.max(0, card.offsetTop - 8);
+      });
+    }
     if (saveAfterCalculation) {
       saveAnalysis();
       document.documentElement.classList.add("history-focus");

@@ -24,7 +24,7 @@ export function getCalculationReadiness({
   } else if (!hasScale) {
     reason = "aguardando escala";
   } else if (!hasRegister) {
-    reason = "aguardando topo do registro";
+    reason = "aguardando velocidade frequente";
   } else if (!hasMaxSpeed) {
     reason = "aguardando velocidade maxima";
   } else if (!hasTolerance) {

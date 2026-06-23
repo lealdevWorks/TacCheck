@@ -46,7 +46,7 @@ http://127.0.0.1:8765/index.html?demo=1
 
 ## Metodologia
 
-A análise compara a velocidade frequente estimada no disco com a velocidade registrada no relatório. Os limites são dinâmicos (`relatório ±4,000 km/h`), e somente diferença estritamente superior a 4 km/h gera alerta de possível reprovação. A linha de 50 km/h é apenas referência visual. Picos e quedas marcados exigem confirmação visual antes da classificação final.
+A análise compara a velocidade frequente estimada no disco com a velocidade registrada no relatório. Os limites são dinâmicos (`relatório ±4,000 km/h`), e somente diferença estritamente superior a 4 km/h gera alerta de possível reprovação. A linha de 50 km/h é apenas referência visual. Picos e quedas ficam em análise avançada opcional e não bloqueiam o cálculo principal.
 
 ## Provas geradas
 

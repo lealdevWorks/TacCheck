@@ -208,6 +208,15 @@ button:disabled {
   background: var(--button-bg);
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .exam-bar {
   display: grid;
   grid-template-columns: 105px 135px 130px 190px 145px 190px minmax(150px, 1fr);
@@ -549,6 +558,77 @@ html[data-theme="dark"] .image-viewer {
 
 .result-card dl {
   margin: 0 0 8px;
+}
+
+.occurrence-card details {
+  display: grid;
+  gap: 10px;
+}
+
+.occurrence-card summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  cursor: pointer;
+  color: var(--heading);
+  font-size: 15px;
+  font-weight: 900;
+  list-style: none;
+}
+
+.occurrence-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.occurrence-card summary::before {
+  content: "+";
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--blue);
+  font-weight: 900;
+}
+
+.occurrence-card details[open] summary::before {
+  content: "-";
+}
+
+.occurrence-card summary span {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.occurrence-card summary small {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: var(--blue);
+  background: var(--blue-soft);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.occurrence-card.has-alert summary small {
+  color: #fff;
+  background: var(--red);
+}
+
+.advanced-mark-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.advanced-mark-actions .button {
+  min-height: 34px;
+  padding: 0 8px;
+  font-size: 12px;
 }
 
 .occurrence-card dl {

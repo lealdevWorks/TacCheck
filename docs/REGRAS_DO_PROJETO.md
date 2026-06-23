@@ -27,13 +27,15 @@ A marca principal representa a velocidade frequente da região constante: centro
 
 ## Picos e quedas
 
-O operador pode marcar o maior e o menor ponto real. Uma nova marca fora dos limites começa como suspeita e exige confirmação visual de:
+Picos e quedas são análise complementar. O fluxo principal não pode exigir marcação de maior ponto, menor ponto, confirmação de pico ou confirmação de queda para calcular a diferença com o relatório.
+
+O operador pode abrir o painel avançado e marcar o maior e o menor ponto real quando houver suspeita visual. Uma nova marca fora dos limites começa como suspeita e exige confirmação visual de:
 
 - continuidade mínima do traço;
 - coerência com a espessura do registro;
 - ausência de sujeira, sombra ou falha de impressão.
 
-Pico acima do limite superior ou queda abaixo do limite inferior somente gera possível reprovação após confirmação manual. Ponto exatamente no limite gera atenção crítica. O operador pode confirmar, ignorar como ruído/sujeira ou ajustar a região.
+Pico acima do limite superior ou queda abaixo do limite inferior somente gera possível reprovação após confirmação manual. Ponto exatamente no limite gera atenção crítica. O operador pode confirmar, ignorar como ruído/sujeira ou ajustar a região. Essa classificação deve aparecer separada da diferença principal com o relatório.
 
 ## Evidência
 

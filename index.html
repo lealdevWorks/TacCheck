@@ -155,8 +155,6 @@
             <button id="mark40Button" type="button" class="button button-light">Marcar 40</button>
             <button id="mark60Button" type="button" class="button button-light">Marcar 60</button>
             <button id="markTopButton" type="button" class="button button-light">Frequente</button>
-            <button id="markPeakButton" type="button" class="button button-light">Maior ponto</button>
-            <button id="markDropButton" type="button" class="button button-light">Menor ponto</button>
             <button id="clearMarksButton" type="button" class="button button-danger-light">Limpar</button>
           </div>
         </section>
@@ -165,7 +163,7 @@
           <div class="right-panel-content">
           <section class="card instructions">
             <h2 id="modeTitle">Como marcar</h2>
-            <p id="modeText">Carregue a imagem e use os botões de marcação. Cada linha precisa de pelo menos 2 pontos.</p>
+            <p id="modeText">Carregue a imagem, marque 40/60 e confirme a velocidade frequente da região constante.</p>
             <div id="qualityBox" class="quality-box">
               <span>Calibração</span>
               <strong id="qualityText">aguardando escala</strong>
@@ -192,28 +190,37 @@
               <div><dt>Diferença calculada</dt><dd id="divergenceOutput">-</dd></div>
               <div><dt>Limite inferior por diferença</dt><dd id="lowerLimitOutput">-</dd></div>
               <div><dt>Limite superior por diferença</dt><dd id="upperLimitOutput">-</dd></div>
-              <div><dt>Tolerância</dt><dd id="toleranceOutput">-</dd></div>
             </dl>
+            <span id="toleranceOutput" class="visually-hidden">-</span>
             <div id="statusBadge" class="status-badge muted">Aguardando cálculo</div>
             <p id="reasonOutput" class="reason">Marque a escala e o registro para calcular.</p>
             <button id="calculateResultButton" type="button" class="button button-primary result-calculate-button" onclick="window.TacCheckCalculate && window.TacCheckCalculate(event)">Calcular agora</button>
           </section>
 
           <section class="card occurrence-card">
-            <h2>Picos e quedas fora do limite</h2>
-            <dl>
-              <div><dt>Maior velocidade real detectada</dt><dd id="highestSpeedOutput">Não marcada</dd></div>
-              <div><dt>Menor velocidade real detectada</dt><dd id="lowestSpeedOutput">Não marcada</dd></div>
-              <div><dt>Limite superior permitido</dt><dd id="peakLimitOutput">-</dd></div>
-              <div><dt>Limite inferior permitido</dt><dd id="dropLimitOutput">-</dd></div>
-            </dl>
-            <div id="occurrenceStatus" class="status-badge muted">Sem pico fora do limite</div>
-            <p id="occurrenceReason" class="reason">Marcas opcionais devem ser confirmadas visualmente.</p>
-            <div id="occurrenceActions" class="occurrence-actions" hidden>
-              <button id="confirmOccurrenceButton" type="button" class="button button-danger-light">Confirmar pico/queda real</button>
-              <button id="ignoreOccurrenceButton" type="button" class="button button-light">Ignorar como ruído/sujeira</button>
-              <button id="adjustRegionButton" type="button" class="button button-light">Ajustar região selecionada</button>
-            </div>
+            <details id="occurrenceDetails">
+              <summary>
+                <span>Análise avançada de picos e quedas</span>
+                <small id="occurrenceSummary">Opcional</small>
+              </summary>
+              <div class="advanced-mark-actions">
+                <button id="markPeakButton" type="button" class="button button-light">Marcar pico superior</button>
+                <button id="markDropButton" type="button" class="button button-light">Marcar queda inferior</button>
+              </div>
+              <dl>
+                <div><dt>Maior velocidade detectada</dt><dd id="highestSpeedOutput">Não marcada</dd></div>
+                <div><dt>Menor velocidade detectada</dt><dd id="lowestSpeedOutput">Não marcada</dd></div>
+                <div><dt>Limite superior</dt><dd id="peakLimitOutput">-</dd></div>
+                <div><dt>Limite inferior</dt><dd id="dropLimitOutput">-</dd></div>
+              </dl>
+              <div id="occurrenceStatus" class="status-badge muted">Sem pico fora do limite</div>
+              <p id="occurrenceReason" class="reason">Picos e quedas são opcionais e não bloqueiam o cálculo principal.</p>
+              <div id="occurrenceActions" class="occurrence-actions" hidden>
+                <button id="confirmOccurrenceButton" type="button" class="button button-danger-light">Confirmar pico real</button>
+                <button id="ignoreOccurrenceButton" type="button" class="button button-light">Ignorar como ruído</button>
+                <button id="adjustRegionButton" type="button" class="button button-light">Ajustar região</button>
+              </div>
+            </details>
           </section>
 
           <section class="card actions-card">
@@ -252,8 +259,8 @@
             <li><strong>Observe a linha de 50 km/h:</strong> ela localiza a região esperada, mas a aprovação por diferença não é calculada contra 50 fixo.</li>
             <li><strong>Observe os limites dinâmicos:</strong> limite inferior = relatório − 4 km/h; limite superior = relatório + 4 km/h.</li>
             <li><strong>Selecione a região constante:</strong> evite subida, descida, repouso, borrões e falhas.</li>
-            <li><strong>Leia a velocidade frequente:</strong> considere o centro e a faixa predominante, não um ponto isolado.</li>
-            <li><strong>Verifique picos e quedas:</strong> marque extremos reais e confirme visualmente a continuidade e a espessura do traço.</li>
+            <li><strong>Leia a velocidade frequente:</strong> considere o centro e a faixa predominante da região constante, não um ponto isolado.</li>
+            <li><strong>Revise picos e quedas somente quando necessário:</strong> pontos altos e baixos são análise complementar; o operador não precisa marcá-los para realizar a leitura principal.</li>
             <li><strong>Interprete o limite:</strong> 4,000 km/h é atenção crítica; somente diferença superior a 4,000 km/h gera possível reprovação.</li>
             <li><strong>Salve a evidência:</strong> a imagem, o relatório, a leitura, os limites, as ocorrências e o status ficam registrados.</li>
           </ol>
