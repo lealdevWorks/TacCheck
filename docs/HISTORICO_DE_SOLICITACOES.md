@@ -62,3 +62,112 @@ Resultado esperado:
 - processo de versionamento;
 - decisoes tecnicas;
 - template para novas demandas.
+
+## 2026-06-23 - Regra objetiva dinamica de velocidade
+
+Solicitacao:
+
+- comparar velocidade frequente do disco com velocidade registrada no relatorio;
+- usar limites dinamicos `relatorio - 4,000` e `relatorio + 4,000`;
+- classificar diferenca exatamente igual a 4,000 km/h como atencao critica;
+- classificar somente diferenca superior a 4,000 km/h como possivel reprovacao;
+- tratar picos e quedas separadamente da diferenca principal.
+
+Resultado:
+
+- versao `0.3.0`;
+- regra implementada no core;
+- UI atualizada para relatorio/frequente/diferenca/limites;
+- testes ampliados;
+- prints de evidencia gerados;
+- publicacao em `main`.
+
+Commit:
+
+```text
+6f7aa30 fix: aplicar regra dinamica de velocidade
+```
+
+## 2026-06-23 - Fluxo visual de picos e quedas
+
+Solicitacao:
+
+- remover maior ponto e menor ponto do fluxo principal;
+- manter picos e quedas como analise avancada opcional;
+- reduzir poluicao visual na imagem;
+- permitir calculo apenas com imagem, escala 40/60, velocidade frequente e velocidade do relatorio.
+
+Resultado:
+
+- painel `Analise avancada de picos e quedas` recolhido por padrao;
+- botoes de pico/queda movidos para o painel avancado;
+- teste garantindo que pico/queda nao bloqueiam o calculo principal;
+- prints de validacao em 1366x768;
+- publicacao em `main`.
+
+Commit:
+
+```text
+8124a22 fix: simplificar fluxo visual de picos
+```
+
+## 2026-06-23 - Icone do app instalado e versao 0.3.1
+
+Solicitacao:
+
+- corrigir icone do app web instalado na barra de tarefas;
+- orientar reinstalacao quando o navegador mantiver cache do icone antigo.
+
+Resultado:
+
+- versao `0.3.1`;
+- manifesto atualizado com icones `any maskable`;
+- cache-buster do manifest atualizado;
+- publicacao em `main`.
+
+Commit:
+
+```text
+e878d74 fix: atualizar icone do app instalado
+```
+
+## 2026-06-23 - Guia de trabalho do dev
+
+Solicitacao:
+
+- documentar o modo de trabalho usado no projeto;
+- deixar claro como lidar com versoes, commits, evidencias, publicacao e deploy.
+
+Resultado:
+
+- criado `docs/GUIA_DE_TRABALHO_DO_DEV.md`;
+- `docs/PROCESSO_DE_VERSIONAMENTO.md` reforcado;
+- indice de documentacao atualizado.
+
+## 2026-06-23 - Rotulos fixos 40/60 no canvas
+
+Solicitacao:
+
+- restaurar rotulos visiveis diretamente no canvas para as linhas 40 km/h e 60 km/h;
+- exibir 50 km/h quando calculado;
+- manter os rotulos antes e depois do calculo, com zoom, pan e imagem marcada;
+- nao alterar a regra matematica.
+
+Resultado:
+
+- versao `0.3.2`;
+- camada final de rotulos de calibracao para 40/50/60;
+- botao `50 calculado`;
+- botao `Detalhes` para rotulos mais completos;
+- prints de validacao em 1366x768.
+
+Evidencias:
+
+```text
+evidencias/rotulos_40_60_antes_calculo_1366x768.png
+evidencias/rotulos_40_60_apos_calculo_1366x768.png
+evidencias/rotulos_40_60_zoom_1366x768.png
+evidencias/rotulos_40_60_pan_1366x768.png
+evidencias/imagem_marcada_rotulos_40_60_1366x768.png
+evidencias/rotulos_40_60_sem_scroll_1366x768.png
+```

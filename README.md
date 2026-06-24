@@ -41,6 +41,7 @@ http://127.0.0.1:8765/index.html?demo=1
 - `docs/REGRAS_DO_PROJETO.md`
 - `docs/HISTORICO_DE_SOLICITACOES.md`
 - `docs/PROCESSO_DE_VERSIONAMENTO.md`
+- `docs/GUIA_DE_TRABALHO_DO_DEV.md`
 - `docs/DECISOES_TECNICAS.md`
 - `docs/TEMPLATE_SOLICITACAO.md`
 

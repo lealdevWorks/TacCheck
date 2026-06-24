@@ -31,6 +31,16 @@ npm test
 - nao enviar certificados;
 - nao enviar `node_modules/`.
 
+5. Se houver alteracao em `src/` ou `index.html`, conferir se tambem e necessario sincronizar `public/`.
+
+Exemplos:
+
+```powershell
+Copy-Item -LiteralPath index.html -Destination public\index.html
+Copy-Item -LiteralPath src\ui\app.js -Destination public\src\ui\app.js
+Copy-Item -LiteralPath src\styles\main.css -Destination public\src\styles\main.css
+```
+
 ## Commits
 
 Usar mensagens claras:
@@ -45,6 +55,39 @@ chore: ajuste de manutencao
 
 Quando a mudanca alterar regra operacional, atualizar `docs/REGRAS_DO_PROJETO.md`.
 
+Nao usar `git add .` por padrao. A pasta `evidencias/` pode conter arquivos antigos nao rastreados. Adicionar explicitamente os arquivos da entrega.
+
+Antes de fechar o commit:
+
+```powershell
+git diff --cached --stat
+```
+
+## Versoes
+
+Quando a entrega muda a versao, atualizar:
+
+- `package.json`;
+- `src/ui/app.js` (`APP_VERSION`);
+- `public/src/ui/app.js`;
+- rodape de `index.html`;
+- rodape de `public/index.html`;
+- query strings de CSS/JS no HTML;
+- query string do `site.webmanifest` quando houver ajuste PWA/cache.
+
+Regra pratica:
+
+- mudanca de regra principal ou marco funcional: nova versao minor dentro de `0.x`;
+- correcao visual, PWA, textos, fluxo ou bug sem mudar regra principal: patch.
+
+Exemplo:
+
+```text
+0.3.0 -> regra objetiva/dinamica de velocidade
+0.3.1 -> correcoes visuais/PWA/fluxo
+0.3.2 -> rotulos fixos 40/60/50 no canvas
+```
+
 ## Publicacao
 
 Fluxo padrao:
@@ -53,6 +96,7 @@ Fluxo padrao:
 npm test
 git status --short
 git add <arquivos>
+git diff --cached --stat
 git commit -m "tipo: mensagem"
 git push origin main
 ```
@@ -101,3 +145,11 @@ evidencias/temp/
 ```
 
 e ignorar somente essa subpasta.
+
+## Guia completo do dev
+
+O fluxo detalhado de trabalho esta em:
+
+```text
+docs/GUIA_DE_TRABALHO_DO_DEV.md
+```

@@ -14,7 +14,7 @@ import { ImageViewer } from "./viewer.js";
 
 const $ = (id) => document.getElementById(id);
 
-const APP_VERSION = "0.3.1";
+const APP_VERSION = "0.3.2";
 const HISTORY_STORAGE_KEY = "taccheck_analises";
 const THEME_COOKIE_NAME = "taccheck_theme";
 const THEME_VALUES = ["auto", "light", "dark"];
@@ -52,6 +52,7 @@ const state = {
   mode: null,
   contrast: 1,
   showMarks: true,
+  showDetailedLabels: false,
   lastAnalysis: null,
   lastSnapshot: null,
   lastError: null
@@ -76,11 +77,13 @@ const els = {
   fitButton: $("fitButton"),
   actualSizeButton: $("actualSizeButton"),
   contrastButton: $("contrastButton"),
+  detailLabelsButton: $("detailLabelsButton"),
   resetViewButton: $("resetViewButton"),
   toggleMarksButton: $("toggleMarksButton"),
   undoButton: $("undoButton"),
   mark40Button: $("mark40Button"),
   mark60Button: $("mark60Button"),
+  mark50Button: $("mark50Button"),
   markTopButton: $("markTopButton"),
   clearMarksButton: $("clearMarksButton"),
   markedImageButton: $("markedImageButton"),
@@ -312,6 +315,11 @@ function bindEvents() {
     state.contrast = state.contrast === 1 ? 1.35 : 1;
     viewer.draw();
   });
+  els.detailLabelsButton.addEventListener("click", () => {
+    state.showDetailedLabels = !state.showDetailedLabels;
+    updateUi();
+    viewer.draw();
+  });
   els.resetViewButton.addEventListener("click", () => {
     state.contrast = 1;
     viewer.fitToScreen();
@@ -323,6 +331,7 @@ function bindEvents() {
   els.undoButton.addEventListener("click", undoLastMark);
   els.mark40Button.addEventListener("click", () => startReferenceMark("line40"));
   els.mark60Button.addEventListener("click", () => startReferenceMark("line60"));
+  els.mark50Button.addEventListener("click", showCalculated50Reference);
   els.markTopButton.addEventListener("click", () => setMode("registerTop"));
   els.markPeakButton.addEventListener("click", () => setMode("peak"));
   els.markDropButton.addEventListener("click", () => setMode("drop"));
@@ -663,6 +672,16 @@ function startReferenceMark(mode) {
   setMode(mode);
 }
 
+function showCalculated50Reference() {
+  if (state.marks.line40.length < 2 || state.marks.line60.length < 2) {
+    setStatus("Marque 40 e 60 para mostrar a referência 50 km/h calculada.");
+    return;
+  }
+
+  setStatus("A linha 50 km/h é calculada pela escala 40/60 e serve apenas como referência visual.");
+  viewer.draw();
+}
+
 function handleCanvasClick(event) {
   if (event.button !== 0 || viewer.shouldIgnoreClick() || !state.image || !state.mode) return;
   const point = viewer.eventToImage(event);
@@ -882,9 +901,10 @@ function drawScene(ctx, viewport, rect) {
   if (state.lastAnalysis) {
     drawEvidence(ctx, viewport, state.lastAnalysis, rect, { showAdvancedOccurrences });
   } else {
+    const labels = createCanvasLabelLayout(rect);
+    drawScaleReferences(ctx, rect, labels);
     const preview = getReadingPreview();
     if (preview) {
-      const labels = createCanvasLabelLayout(rect);
       drawLineAtCenter(ctx, preview.calibration, preview.register.line.center, COLORS.register, {
         dashed: false,
         label: "FREQUENTE",
@@ -895,6 +915,45 @@ function drawScene(ctx, viewport, rect) {
     }
   }
   ctx.restore();
+}
+
+function drawScaleReferences(ctx, rect, labels) {
+  if (state.marks.line40.length >= 2 && state.marks.line60.length >= 2) {
+    try {
+      const calibration = buildCalibration(state.marks.line40, state.marks.line60);
+      drawSpeedLine(ctx, calibration, 40, COLORS.line40, {
+        label: "",
+        normalOffset: 20,
+        lineOffset: -88,
+        importance: "low"
+      }, labels);
+      drawSpeedLine(ctx, calibration, 60, COLORS.line60, {
+        label: "",
+        normalOffset: -20,
+        lineOffset: 88,
+        importance: "low"
+      }, labels);
+      drawSpeedLine(ctx, calibration, 50, COLORS.line50, {
+        label: "",
+        normalOffset: -18,
+        lineOffset: 22,
+        importance: "low"
+      }, labels);
+      drawCalibrationLabels(ctx, calibration, rect);
+      return;
+    } catch {
+      // Se a calibracao ainda estiver instavel, mantem ao menos os rotulos das marcas.
+    }
+  }
+
+  drawPointSetLabel(ctx, state.marks.line40, COLORS.line40, "40 km/h", rect, labels, {
+    normalOffset: 18,
+    lineOffset: -44
+  });
+  drawPointSetLabel(ctx, state.marks.line60, COLORS.line60, "60 km/h", rect, labels, {
+    normalOffset: -18,
+    lineOffset: 44
+  });
 }
 
 function shouldShowAdvancedOccurrences(analysis = state.lastAnalysis) {
@@ -921,24 +980,25 @@ function drawEvidence(ctx, viewport, analysis, rect = null, options = {}) {
   const indicated = analysis.result.indicatedSpeed;
   const labels = createCanvasLabelLayout(rect);
   const showAdvancedOccurrences = options.showAdvancedOccurrences ?? shouldShowAdvancedOccurrences(analysis);
+  const detailedLabels = state.showDetailedLabels;
 
   drawSpeedLine(ctx, analysis.calibration, 40, COLORS.line40, {
     label: "",
-    normalOffset: 24,
-    lineOffset: -96,
+    normalOffset: 20,
+    lineOffset: -88,
     importance: "low"
   }, labels);
   drawSpeedLine(ctx, analysis.calibration, 60, COLORS.line60, {
     label: "",
-    normalOffset: -24,
-    lineOffset: 94,
+    normalOffset: -20,
+    lineOffset: 88,
     importance: "low"
   }, labels);
   drawSpeedLine(ctx, analysis.calibration, 50, COLORS.line50, {
     label: "",
-    normalOffset: -22,
+    normalOffset: -18,
     lineOffset: 24,
-    importance: "normal"
+    importance: "low"
   }, labels);
   drawSpeedLine(ctx, analysis.calibration, reportSpeed, COLORS.max, {
     label: `RELATÓRIO ${formatNumber(reportSpeed)}`,
@@ -948,14 +1008,14 @@ function drawEvidence(ctx, viewport, analysis, rect = null, options = {}) {
   }, labels);
   drawSpeedLine(ctx, analysis.calibration, lower, COLORS.limit, {
     dashed: true,
-    label: `LIMITE INFERIOR ${formatNumber(lower)}`,
+    label: `${detailedLabels ? "LIMITE INFERIOR" : "LIM INF"} ${formatNumber(lower)}`,
     normalOffset: 34,
     lineOffset: -126,
     importance: "secondary"
   }, labels);
   drawSpeedLine(ctx, analysis.calibration, upper, COLORS.limit, {
     dashed: true,
-    label: `LIMITE SUPERIOR ${formatNumber(upper)}`,
+    label: `${detailedLabels ? "LIMITE SUPERIOR" : "LIM SUP"} ${formatNumber(upper)}`,
     normalOffset: -34,
     lineOffset: -126,
     importance: "secondary"
@@ -980,6 +1040,52 @@ function drawEvidence(ctx, viewport, analysis, rect = null, options = {}) {
       lineOffset: 226
     }, labels);
   }
+  drawCalibrationLabels(ctx, analysis.calibration, rect);
+}
+
+function drawCalibrationLabels(ctx, calibration, rect = null) {
+  const labels = createCanvasLabelLayout(rect);
+  drawSpeedLabel(ctx, calibration, 40, COLORS.line40, "40 km/h", {
+    normalOffset: 18,
+    lineOffset: -88
+  }, labels);
+  drawSpeedLabel(ctx, calibration, 60, COLORS.line60, "60 km/h", {
+    normalOffset: -18,
+    lineOffset: 88
+  }, labels);
+  drawSpeedLabel(ctx, calibration, 50, COLORS.line50, "50 km/h", {
+    normalOffset: -16,
+    lineOffset: 22
+  }, labels);
+}
+
+function drawSpeedLabel(ctx, calibration, speed, color, label, options = {}, labels = null) {
+  const center = pointForSpeed(calibration, speed);
+  const half = Math.max(state.image.naturalWidth, state.image.naturalHeight);
+  const a = {
+    x: center.x - calibration.direction.x * half,
+    y: center.y - calibration.direction.y * half
+  };
+  const b = {
+    x: center.x + calibration.direction.x * half,
+    y: center.y + calibration.direction.y * half
+  };
+  const sa = viewer.imageToScreen(a);
+  const sb = viewer.imageToScreen(b);
+  const anchor = viewer.imageToScreen(center);
+  const direction = normalizeVector({ x: sb.x - sa.x, y: sb.y - sa.y });
+  const normal = { x: -direction.y, y: direction.x };
+
+  drawCanvasTag(ctx, {
+    anchor,
+    direction,
+    normal,
+    lineOffset: options.lineOffset ?? 0,
+    normalOffset: options.normalOffset ?? 0,
+    color,
+    label,
+    importance: "calibration"
+  }, labels);
 }
 
 function drawPointSet(ctx, points, color) {
@@ -1006,6 +1112,36 @@ function drawPointSet(ctx, points, color) {
     ctx.fillText(String(index + 1), p.x, p.y);
     ctx.fillStyle = color;
   });
+}
+
+function drawPointSetLabel(ctx, points, color, label, rect, labels, options = {}) {
+  if (!points.length) return;
+
+  const first = points[0];
+  const last = points[points.length - 1] || first;
+  const center = {
+    x: (first.x + last.x) / 2,
+    y: (first.y + last.y) / 2
+  };
+  const start = viewer.imageToScreen(first);
+  const end = viewer.imageToScreen(last);
+  const anchor = viewer.imageToScreen(center);
+  const direction = normalizeVector({
+    x: end.x - start.x || 1,
+    y: end.y - start.y
+  });
+  const normal = { x: -direction.y, y: direction.x };
+
+  drawCanvasTag(ctx, {
+    anchor,
+    direction,
+    normal,
+    lineOffset: options.lineOffset ?? 0,
+    normalOffset: options.normalOffset ?? 18,
+    color,
+    label,
+    importance: "low"
+  }, labels || createCanvasLabelLayout(rect));
 }
 
 function drawSpeedLine(ctx, calibration, speed, color, options = {}, labels = null) {
@@ -1180,6 +1316,20 @@ function canvasTagStyle(importance) {
       chipAlpha: 0.82,
       textColor: "#e9f2ff"
     },
+    calibration: {
+      height: 22,
+      paddingX: 7,
+      chipWidth: 4,
+      chipHeight: 12,
+      chipGap: 6,
+      radius: 6,
+      fontSize: 11,
+      weight: 900,
+      fillAlpha: 0.84,
+      borderAlpha: 0.9,
+      chipAlpha: 1,
+      textColor: "#ffffff"
+    },
     normal: {
       height: 24,
       paddingX: 8,
@@ -1289,9 +1439,16 @@ function updateUi() {
     : "pendente";
   els.mark40Button.textContent = state.marks.line40.length >= 2 ? "Remarcar 40" : "Marcar 40";
   els.mark60Button.textContent = state.marks.line60.length >= 2 ? "Remarcar 60" : "Marcar 60";
+  els.mark50Button.disabled = !(state.marks.line40.length >= 2 && state.marks.line60.length >= 2);
+  els.mark50Button.textContent = state.marks.line40.length >= 2 && state.marks.line60.length >= 2
+    ? "50 calculado"
+    : "50 após escala";
   els.markPeakButton.textContent = state.marks.peak.length ? "Remarcar pico superior" : "Marcar pico superior";
   els.markDropButton.textContent = state.marks.drop.length ? "Remarcar queda inferior" : "Marcar queda inferior";
   els.resultStepStatus.textContent = state.lastAnalysis || state.lastSnapshot ? "calculado" : "aguardando";
+  els.detailLabelsButton.classList.toggle("is-active", state.showDetailedLabels);
+  els.detailLabelsButton.setAttribute("aria-pressed", String(state.showDetailedLabels));
+  els.detailLabelsButton.textContent = state.showDetailedLabels ? "Detalhes on" : "Detalhes";
   els.calculateButton.disabled = false;
   els.calculateResultButton.disabled = false;
   updateStepClasses();
@@ -1935,8 +2092,23 @@ function loadDemo(scenario = "default", saveAfterCalculation = false) {
     };
     state.readingOffsetPx = 0;
     els.maxSpeedInput.value = formatNumber(selected.report);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("calc") === "0") {
+      state.lastAnalysis = null;
+      state.lastSnapshot = null;
+      resetResult();
+      updateUi();
+      viewer.draw();
+      setStatus("Escala marcada. Rótulos 40/60 visíveis antes do cálculo.");
+      applyDemoView(params.get("view"));
+      return;
+    }
     calculate({ reportSpeed: selected.report });
-    if (new URLSearchParams(window.location.search).get("advanced") === "1") {
+    applyDemoView(params.get("view"));
+    if (params.get("marked") === "1") {
+      requestAnimationFrame(showMarkedDemoPreview);
+    }
+    if (params.get("advanced") === "1") {
       openOccurrencePanel();
       viewer.draw();
       requestAnimationFrame(() => {
@@ -1958,4 +2130,35 @@ function loadDemo(scenario = "default", saveAfterCalculation = false) {
     }
   };
   image.src = canvas.toDataURL("image/png");
+}
+
+function applyDemoView(view) {
+  if (!view) return;
+
+  requestAnimationFrame(() => {
+    if (view === "zoom") {
+      viewer.zoom(1.7);
+    } else if (view === "pan") {
+      viewer.viewport.offsetX -= 180;
+      viewer.viewport.offsetY += 70;
+      viewer.draw();
+    }
+  });
+}
+
+function showMarkedDemoPreview() {
+  if (!state.lastAnalysis) return;
+
+  const canvas = renderMarkedImage();
+  document.body.innerHTML = "";
+  document.body.style.margin = "0";
+  document.body.style.minHeight = "100vh";
+  document.body.style.display = "grid";
+  document.body.style.placeItems = "center";
+  document.body.style.background = "#071b35";
+  canvas.style.maxWidth = "100vw";
+  canvas.style.maxHeight = "100vh";
+  canvas.style.width = "auto";
+  canvas.style.height = "auto";
+  document.body.append(canvas);
 }

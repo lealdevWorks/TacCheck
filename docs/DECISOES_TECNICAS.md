@@ -74,3 +74,30 @@ Motivo:
 - acesso simples por navegador;
 - permite validacao operacional rapida;
 - mantem o projeto publico enquanto for necessario para testes.
+
+## Diretorio public
+
+Decisao:
+
+- manter `public/` como copia dos assets estaticos usados pelo Wrangler/Cloudflare;
+- sincronizar `index.html`, `src/ui`, `src/core`, `src/styles` e assets quando a mudanca afetar o app publicado por esse caminho.
+
+Motivo:
+
+- `wrangler.jsonc` aponta `assets.directory` para `./public`;
+- evita diferenca entre teste local, GitHub Pages e Cloudflare;
+- deixa o deploy previsivel.
+
+## PWA e app instalado
+
+Decisao:
+
+- tratar `assets/brand/site.webmanifest` e `public/assets/brand/site.webmanifest` como parte do release;
+- usar cache-buster no link do manifest;
+- declarar icones com `purpose: "any maskable"` quando o app for instalado no Windows/Chrome/Edge.
+
+Motivo:
+
+- navegadores podem manter cache agressivo do manifest e do icone;
+- o app instalado pode precisar de reinstalacao para atualizar o icone na barra de tarefas;
+- versao e manifest precisam andar juntos para reduzir cache antigo.

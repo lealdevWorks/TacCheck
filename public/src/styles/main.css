@@ -413,6 +413,11 @@ select {
   background: var(--panel-3);
 }
 
+.tool-strip button.is-active {
+  color: #fff;
+  background: var(--blue);
+}
+
 .canvas-wrap,
 .image-viewer {
   position: relative;
@@ -1547,6 +1552,10 @@ html[data-theme="dark"] .image-viewer {
 #markTopButton {
   min-width: 200px;
   color: var(--yellow);
+}
+
+#mark50Button {
+  color: var(--red);
 }
 
 #clearMarksButton {

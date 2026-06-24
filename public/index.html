@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="./assets/brand/taccheck-icon-32.png">
     <link rel="icon" type="image/png" sizes="64x64" href="./assets/brand/taccheck-icon-64.png">
     <link rel="apple-touch-icon" href="./assets/brand/apple-touch-icon.png">
-    <link rel="manifest" href="./assets/brand/site.webmanifest?v=0.3.1">
+    <link rel="manifest" href="./assets/brand/site.webmanifest?v=0.3.2">
     <meta name="theme-color" content="#071b35">
     <script>
       (function () {
@@ -30,7 +30,7 @@
         document.documentElement.setAttribute("data-theme", theme);
       })();
     </script>
-    <link rel="stylesheet" href="./src/styles/main.css?v=0.3.1">
+    <link rel="stylesheet" href="./src/styles/main.css?v=0.3.2">
   </head>
   <body>
     <div class="app-shell">
@@ -140,6 +140,7 @@
             <button id="fitButton" title="Ajustar à tela">Ajustar</button>
             <button id="actualSizeButton" title="Zoom 100%">100%</button>
             <button id="contrastButton" title="Aumentar contraste">Contraste</button>
+            <button id="detailLabelsButton" title="Mostrar ou ocultar rótulos detalhados">Detalhes</button>
             <button id="resetViewButton" title="Redefinir visualização">Redefinir</button>
             <button id="toggleMarksButton" title="Mostrar ou ocultar marcações">Marcas</button>
             <button id="undoButton" title="Desfazer última marcação">Desfazer</button>
@@ -154,6 +155,7 @@
           <div class="mark-toolbar">
             <button id="mark40Button" type="button" class="button button-light">Marcar 40</button>
             <button id="mark60Button" type="button" class="button button-light">Marcar 60</button>
+            <button id="mark50Button" type="button" class="button button-light">50 calculado</button>
             <button id="markTopButton" type="button" class="button button-light">Frequente</button>
             <button id="clearMarksButton" type="button" class="button button-danger-light">Limpar</button>
           </div>
@@ -240,7 +242,7 @@
 
       <footer class="status-bar">
         <span id="statusText">Sistema pronto</span>
-        <span class="version-text">TacCheck v0.3.1 · © 2026 Leal DevWorks</span>
+        <span class="version-text">TacCheck v0.3.2 · © 2026 Leal DevWorks</span>
         <span id="lastCalcText">Último cálculo: -</span>
       </footer>
     </div>
@@ -302,6 +304,6 @@
     </div>
 
     <input id="fileInput" type="file" accept="image/*" hidden>
-    <script type="module" src="./src/ui/app.js?v=0.3.1"></script>
+    <script type="module" src="./src/ui/app.js?v=0.3.2"></script>
   </body>
 </html>
