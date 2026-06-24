@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="./assets/brand/taccheck-icon-32.png">
     <link rel="icon" type="image/png" sizes="64x64" href="./assets/brand/taccheck-icon-64.png">
     <link rel="apple-touch-icon" href="./assets/brand/apple-touch-icon.png">
-    <link rel="manifest" href="./assets/brand/site.webmanifest?v=0.3.3">
+    <link rel="manifest" href="./assets/brand/site.webmanifest?v=0.4.0">
     <meta name="theme-color" content="#071b35">
     <script>
       (function () {
@@ -30,7 +30,7 @@
         document.documentElement.setAttribute("data-theme", theme);
       })();
     </script>
-    <link rel="stylesheet" href="./src/styles/main.css?v=0.3.3">
+    <link rel="stylesheet" href="./src/styles/main.css?v=0.4.0">
   </head>
   <body>
     <div class="app-shell">
@@ -80,16 +80,16 @@
           </select>
         </label>
         <label>
-          <span>Velocidade registrada no relatório</span>
+          <span>Velocidade registrada/máxima do ensaio</span>
           <div class="input-addon">
             <input id="maxSpeedInput" placeholder="Informe" inputmode="decimal">
             <b>km/h</b>
           </div>
         </label>
         <label>
-          <span>Tolerância</span>
+          <span>Tolerância de análise</span>
           <div class="input-addon short">
-            <input id="toleranceInput" value="4,000" readonly aria-label="Tolerância objetiva fixa">
+            <input id="toleranceInput" value="4,000" inputmode="decimal" aria-label="Tolerância de análise" title="Use 4,000 km/h para o limite máximo de referência. Reduza este valor para uma análise mais segura.">
             <b>km/h</b>
           </div>
         </label>
@@ -126,8 +126,7 @@
             <p><i class="line green"></i>40 km/h</p>
             <p><i class="line blue"></i>60 km/h</p>
             <p><i class="line red"></i>50 km/h</p>
-            <p><i class="line purple"></i>Velocidade do relatório</p>
-            <p><i class="line dash"></i>Limites por diferença</p>
+            <p><i class="line dash"></i>Limites da análise</p>
             <p><i class="line yellow"></i>Velocidade frequente</p>
           </section>
           </div>
@@ -185,13 +184,13 @@
           </section>
 
           <section class="card result-card">
-            <h2>Diferença com o relatório</h2>
+            <h2>Conferência com velocidade registrada/máxima do ensaio</h2>
             <dl>
-              <div><dt>Velocidade registrada no relatório</dt><dd id="maxSpeedOutput">-</dd></div>
+              <div><dt>Velocidade registrada/máxima do ensaio</dt><dd id="maxSpeedOutput">-</dd></div>
               <div><dt>Velocidade frequente no disco</dt><dd id="indicatedSpeedOutput">-</dd></div>
               <div><dt>Diferença calculada</dt><dd id="divergenceOutput">-</dd></div>
-              <div><dt>Limite inferior por diferença</dt><dd id="lowerLimitOutput">-</dd></div>
-              <div><dt>Limite superior por diferença</dt><dd id="upperLimitOutput">-</dd></div>
+              <div><dt>Limite inferior da conferência</dt><dd id="lowerLimitOutput">-</dd></div>
+              <div><dt>Limite superior da conferência</dt><dd id="upperLimitOutput">-</dd></div>
             </dl>
             <span id="toleranceOutput" class="visually-hidden">-</span>
             <div id="statusBadge" class="status-badge muted">Aguardando cálculo</div>
@@ -242,7 +241,7 @@
 
       <footer class="status-bar">
         <span id="statusText">Sistema pronto</span>
-        <span class="version-text">TacCheck v0.3.3 · © 2026 Leal DevWorks</span>
+        <span class="version-text">TacCheck v0.4.0 · © 2026 Leal DevWorks</span>
         <span id="lastCalcText">Último cálculo: -</span>
       </footer>
     </div>
@@ -254,17 +253,18 @@
           <button id="closeGuideButton" type="button" class="camera-icon-button" title="Fechar guia">×</button>
         </div>
         <div class="guide-content">
-          <p>Este guia ajuda o operador a comparar a velocidade lida no disco/fita com a velocidade registrada no relatório de ensaio. A análise usa a velocidade do relatório como referência e calcula o limite de ±4 km/h.</p>
+          <p>Este guia ajuda o operador a comparar a velocidade frequente lida no disco/fita com a velocidade registrada/máxima do ensaio. A tolerância de análise pode ser reduzida pelo usuário, mas não pode passar de 4,000 km/h.</p>
           <ol>
-            <li><strong>Informe o valor do relatório:</strong> digite a velocidade registrada no relatório de ensaio. Esse valor será a referência dos limites.</li>
+            <li><strong>Informe a velocidade registrada/máxima do ensaio:</strong> esse valor do relatório/sistema é a referência principal da conferência.</li>
+            <li><strong>Configure a tolerância de análise:</strong> use 4,000 km/h para o limite máximo de referência ou reduza para uma análise preventiva.</li>
             <li><strong>Marque as referências do disco:</strong> marque 40 km/h e 60 km/h. A linha de 50 km/h será calculada para conferência visual.</li>
-            <li><strong>Observe a linha de 50 km/h:</strong> ela localiza a região esperada, mas a aprovação por diferença não é calculada contra 50 fixo.</li>
-            <li><strong>Observe os limites dinâmicos:</strong> limite inferior = relatório − 4 km/h; limite superior = relatório + 4 km/h.</li>
+            <li><strong>Observe a linha de 50 km/h:</strong> ela orienta a região esperada do ensaio, mas não substitui a conferência principal.</li>
+            <li><strong>Observe os limites da conferência:</strong> limite inferior = velocidade registrada/máxima − tolerância; limite superior = velocidade registrada/máxima + tolerância.</li>
             <li><strong>Selecione a região constante:</strong> evite subida, descida, repouso, borrões e falhas.</li>
             <li><strong>Leia a velocidade frequente:</strong> considere o centro e a faixa predominante da região constante, não um ponto isolado.</li>
             <li><strong>Revise picos e quedas somente quando necessário:</strong> pontos altos e baixos são análise complementar; o operador não precisa marcá-los para realizar a leitura principal.</li>
-            <li><strong>Interprete o limite:</strong> 4,000 km/h é atenção crítica; somente diferença superior a 4,000 km/h gera possível reprovação.</li>
-            <li><strong>Salve a evidência:</strong> a imagem, o relatório, a leitura, os limites, as ocorrências e o status ficam registrados.</li>
+            <li><strong>Interprete o limite:</strong> exatamente no limite é atenção crítica; somente valor fora do limite configurado gera possível reprovação/alerta.</li>
+            <li><strong>Salve a evidência:</strong> a imagem, a leitura, a tolerância, os limites, a conferência do ensaio, as ocorrências e o status ficam registrados.</li>
           </ol>
         </div>
       </article>
@@ -304,6 +304,6 @@
     </div>
 
     <input id="fileInput" type="file" accept="image/*" hidden>
-    <script type="module" src="./src/ui/app.js?v=0.3.3"></script>
+    <script type="module" src="./src/ui/app.js?v=0.4.0"></script>
   </body>
 </html>

@@ -197,3 +197,24 @@ evidencias/overlay_limpo_antes_calculo_1366x768.png
 evidencias/overlay_pos_calculo_1366x768.png
 evidencias/overlay_limpo_apos_limpar_1366x768.png
 ```
+
+## 2026-06-23 - Regra principal contra velocidade registrada/maxima do ensaio
+
+Solicitacao:
+
+- usar a velocidade registrada/maxima do ensaio como referencia principal;
+- permitir `Tolerancia de analise` ajustavel, com maximo de `4,000 km/h`;
+- calcular limites principais como `velocidade registrada/maxima - tolerancia` e `velocidade registrada/maxima + tolerancia`;
+- manter 50 km/h como referencia visual/secundaria;
+- manter picos e quedas como analise auxiliar opcional;
+- nao poluir o canvas antes do calculo.
+
+Resultado:
+
+- versao `0.4.0`;
+- regra central alterada em `src/core/tolerance.js`;
+- readiness exige velocidade registrada/maxima do ensaio;
+- tolerancia acima de `4,000` bloqueia o calculo;
+- UI renomeada para `Conferencia com velocidade registrada/maxima do ensaio`;
+- linhas pontilhadas passam a usar velocidade registrada/maxima +/- tolerancia;
+- testes ampliados para 42 cenarios.

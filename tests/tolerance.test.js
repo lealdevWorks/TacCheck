@@ -8,49 +8,66 @@ import {
   parseNumber
 } from "../src/core/tolerance.js";
 
-const cases = [
-  [52, 56, 4, RESULT_STATUS.CRITICAL],
-  [52, 56.001, 4.001, RESULT_STATUS.POSSIBLE_FAILURE],
-  [52, 47.999, 4.001, RESULT_STATUS.POSSIBLE_FAILURE],
-  [50, 46, 4, RESULT_STATUS.CRITICAL],
-  [50, 45.999, 4.001, RESULT_STATUS.POSSIBLE_FAILURE]
+const mainCases = [
+  [52.101, 47.74, 4, 4.361, RESULT_STATUS.POSSIBLE_FAILURE],
+  [52, 48, 4, 4, RESULT_STATUS.CRITICAL],
+  [51, 48.5, 4, 2.5, RESULT_STATUS.WITHIN],
+  [52.101, 48.6, 3.5, 3.501, RESULT_STATUS.POSSIBLE_FAILURE],
+  [52.101, 48.601, 3.5, 3.5, RESULT_STATUS.CRITICAL]
 ];
 
-for (const [reportSpeed, indicatedSpeed, difference, status] of cases) {
-  test(`relatório ${reportSpeed} / disco ${indicatedSpeed}`, () => {
-    const result = calculateResult({ reportSpeed, indicatedSpeed });
-    assert.ok(Math.abs(result.divergenceAbs - difference) < 1e-9);
+for (const [reportSpeed, indicatedSpeed, tolerance, difference, status] of mainCases) {
+  test(`registrada ${reportSpeed} / disco ${indicatedSpeed} / tolerancia ${tolerance}`, () => {
+    const result = calculateResult({ reportSpeed, indicatedSpeed, tolerance });
+    assert.equal(Number(result.divergenceAbs.toFixed(3)), Number(difference.toFixed(3)));
     assert.equal(result.status, status);
-    assert.equal(result.possibleFailure, difference > 4);
   });
 }
 
-test("classifica as quatro faixas sem arredondar antes", () => {
-  assert.equal(calculateResult({ reportSpeed: 50, indicatedSpeed: 53.5 }).status, RESULT_STATUS.WITHIN);
-  assert.equal(calculateResult({ reportSpeed: 50, indicatedSpeed: 53.501 }).status, RESULT_STATUS.NEAR);
-  assert.equal(calculateResult({ reportSpeed: 50, indicatedSpeed: 54 }).status, RESULT_STATUS.CRITICAL);
-  assert.equal(calculateResult({ reportSpeed: 50, indicatedSpeed: 54.0001 }).status, RESULT_STATUS.POSSIBLE_FAILURE);
-  assert.equal(calculateResult({ reportSpeed: 50, indicatedSpeed: 54.0001 }).roundingWarning, true);
+test("linhas pontilhadas usam velocidade registrada/maxima do ensaio mais tolerancia", () => {
+  const result = calculateResult({ reportSpeed: 52.101, indicatedSpeed: 47.74, tolerance: 4 });
+  assert.equal(Number(result.lowerLimit.toFixed(3)), 48.101);
+  assert.equal(Number(result.upperLimit.toFixed(3)), 56.101);
 });
 
-test("limites são sempre derivados da velocidade do relatório", () => {
-  const result = calculateResult({ reportSpeed: 52, indicatedSpeed: 52 });
-  assert.equal(result.lowerLimit, 48);
-  assert.equal(result.upperLimit, 56);
+test("linhas pontilhadas respeitam tolerancia reduzida", () => {
+  const result = calculateResult({ reportSpeed: 52.101, indicatedSpeed: 50, tolerance: 3.5 });
+  assert.equal(Number(result.lowerLimit.toFixed(3)), 48.601);
+  assert.equal(Number(result.upperLimit.toFixed(3)), 55.601);
 });
 
-test("pico e queda exatamente no limite exigem revisão", () => {
-  const result = classifyOccurrences({ highestSpeed: 56, lowestSpeed: 48, lowerLimit: 48, upperLimit: 56 });
+test("referencia 50 permanece secundaria", () => {
+  const result = calculateResult({ reportSpeed: 52.101, indicatedSpeed: 47.74, tolerance: 4 });
+  assert.equal(Number(result.targetErrorAbs.toFixed(3)), 2.26);
+  assert.equal(result.lowerLimit !== result.targetLowerLimit, true);
+});
+
+test("bloqueia tolerancia acima de 4 km/h", () => {
+  assert.throws(
+    () => calculateResult({ reportSpeed: 52, indicatedSpeed: 52, tolerance: 4.001 }),
+    /nao pode ser maior/
+  );
+});
+
+test("bloqueia calculo sem velocidade registrada/maxima do ensaio", () => {
+  assert.throws(
+    () => calculateResult({ indicatedSpeed: 50, tolerance: 4 }),
+    /velocidade registrada/
+  );
+});
+
+test("pico e queda exatamente no limite exigem revisao", () => {
+  const result = classifyOccurrences({ highestSpeed: 56.101, lowestSpeed: 48.101, lowerLimit: 48.101, upperLimit: 56.101 });
   assert.equal(result.peak.status, OCCURRENCE_STATUS.CRITICAL);
   assert.equal(result.drop.status, OCCURRENCE_STATUS.CRITICAL);
 });
 
-test("pico confirmado acima e queda confirmada abaixo geram possível reprovação", () => {
+test("pico confirmado acima e queda confirmada abaixo geram possivel reprovacao", () => {
   const result = classifyOccurrences({
-    highestSpeed: 56.001,
-    lowestSpeed: 47.999,
-    lowerLimit: 48,
-    upperLimit: 56,
+    highestSpeed: 56.102,
+    lowestSpeed: 48.1,
+    lowerLimit: 48.101,
+    upperLimit: 56.101,
     peakConfirmation: "confirmed",
     dropConfirmation: "confirmed"
   });
@@ -58,16 +75,16 @@ test("pico confirmado acima e queda confirmada abaixo geram possível reprovaç�
   assert.equal(result.drop.status, OCCURRENCE_STATUS.POSSIBLE_FAILURE);
 });
 
-test("marca isolada permanece suspeita até confirmação manual", () => {
-  const result = classifyOccurrences({ highestSpeed: 56.5, lowerLimit: 48, upperLimit: 56 });
+test("marca isolada permanece suspeita ate confirmacao manual", () => {
+  const result = classifyOccurrences({ highestSpeed: 56.5, lowerLimit: 48.101, upperLimit: 56.101 });
   assert.equal(result.status, OCCURRENCE_STATUS.SUSPECTED);
 });
 
-test("ocorrência ignorada como ruído não gera alerta", () => {
+test("ocorrencia ignorada como ruido nao gera alerta", () => {
   const result = classifyOccurrences({
     highestSpeed: 60,
-    lowerLimit: 48,
-    upperLimit: 56,
+    lowerLimit: 48.101,
+    upperLimit: 56.101,
     peakConfirmation: "ignored"
   });
   assert.equal(result.status, OCCURRENCE_STATUS.CLEAR);

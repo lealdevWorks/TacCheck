@@ -87,6 +87,7 @@ Exemplo:
 0.3.1 -> correcoes visuais/PWA/fluxo
 0.3.2 -> rotulos fixos 40/60/50 no canvas
 0.3.3 -> overlays de resultado somente apos Calcular
+0.4.0 -> regra principal contra velocidade registrada/maxima do ensaio com tolerancia ajustavel
 ```
 
 ## Publicacao

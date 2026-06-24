@@ -40,6 +40,7 @@ test("analise completa reproduz caso real 1 por topo do registro", () => {
 
   close(analysis.register.indicatedSpeed, 46.31);
   close(analysis.result.divergence, -4.863);
+  close(analysis.result.primaryError, -4.863);
   close(analysis.result.lowerLimit, 47.173);
   close(analysis.result.upperLimit, 55.173);
   assert.equal(analysis.result.status, RESULT_STATUS.POSSIBLE_FAILURE);
@@ -61,6 +62,7 @@ test("analise completa reproduz caso real 2 por topo do registro", () => {
 
   close(analysis.register.indicatedSpeed, 47.74);
   close(analysis.result.divergence, -4.361);
+  close(analysis.result.primaryError, -4.361);
   close(analysis.result.lowerLimit, 48.101);
   close(analysis.result.upperLimit, 56.101);
   assert.equal(analysis.result.status, RESULT_STATUS.POSSIBLE_FAILURE);
@@ -81,7 +83,7 @@ test("analise aceita um ponto simples no topo do registro", () => {
   });
 
   close(analysis.register.indicatedSpeed, 48.5);
-  assert.equal(analysis.result.status, RESULT_STATUS.NEAR);
+  assert.equal(analysis.result.status, RESULT_STATUS.WITHIN);
 });
 
 test("analise usa apenas o ponto inicial do topo do registro", () => {

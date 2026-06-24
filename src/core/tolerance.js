@@ -2,7 +2,8 @@ export const DEFAULT_CONFIG = Object.freeze({
   lowerRefValue: 40,
   upperRefValue: 60,
   targetSpeed: 50,
-  tolerance: 4
+  tolerance: 4,
+  maxTolerance: 4
 });
 
 export const RESULT_STATUS = Object.freeze({
@@ -39,33 +40,49 @@ export function formatNumber(value, digits = 3) {
   });
 }
 
-function classifyDifference(divergenceAbs, tolerance) {
-  const equalWithinMachinePrecision = Math.abs(divergenceAbs - tolerance) <= 1e-12;
-  if (divergenceAbs > tolerance && !equalWithinMachinePrecision) {
+function assertValidReference(referenceSpeed) {
+  if (!Number.isFinite(referenceSpeed) || referenceSpeed <= 0) {
+    throw new RangeError("Informe a velocidade registrada/maxima do ensaio.");
+  }
+}
+
+function assertValidTolerance(tolerance) {
+  if (!Number.isFinite(tolerance) || tolerance <= 0) {
+    throw new RangeError("Informe uma tolerancia de analise valida.");
+  }
+  if (tolerance > DEFAULT_CONFIG.maxTolerance) {
+    throw new RangeError("A tolerancia de analise nao pode ser maior que 4,000 km/h.");
+  }
+}
+
+function classifyDifference(differenceAbs, tolerance) {
+  const atLimit = Math.abs(differenceAbs - tolerance) <= 1e-12;
+  const reducedTolerance = tolerance < DEFAULT_CONFIG.maxTolerance;
+
+  if (differenceAbs > tolerance && !atLimit) {
     return {
       status: RESULT_STATUS.POSSIBLE_FAILURE,
-      label: "Possível reprovação — diferença superior a 4 km/h",
-      reason: "A diferença calculada é superior a 4,000 km/h."
+      label: reducedTolerance
+        ? "Alerta de seguranca - diferenca maior que a tolerancia configurada"
+        : "Possivel reprovacao - diferenca maior que a tolerancia",
+      reason: reducedTolerance
+        ? "Diferenca maior que a tolerancia configurada em relacao a velocidade registrada/maxima do ensaio. Analise preventiva; o limite maximo de referencia permanece 4,000 km/h."
+        : "Diferenca maior que 4,000 km/h em relacao a velocidade registrada/maxima do ensaio."
     };
   }
-  if (equalWithinMachinePrecision) {
+
+  if (atLimit) {
     return {
       status: RESULT_STATUS.CRITICAL,
-      label: "Atenção crítica — exatamente no limite",
-      reason: "Diferença exatamente igual a 4,000 km/h. Revisar leitura."
+      label: "Atencao critica - exatamente no limite",
+      reason: "Diferenca exatamente igual a tolerancia configurada. Revisar leitura."
     };
   }
-  if (divergenceAbs > 3.5) {
-    return {
-      status: RESULT_STATUS.NEAR,
-      label: "Atenção — próximo do limite",
-      reason: "A diferença está próxima do limite de 4,000 km/h."
-    };
-  }
+
   return {
     status: RESULT_STATUS.WITHIN,
     label: "Dentro do limite",
-    reason: "Diferença dentro do limite objetivo."
+    reason: "Diferenca dentro da tolerancia configurada em relacao a velocidade registrada/maxima do ensaio."
   };
 }
 
@@ -76,26 +93,43 @@ export function calculateResult({
   tolerance = DEFAULT_CONFIG.tolerance
 }) {
   const referenceSpeed = Number.isFinite(reportSpeed) ? reportSpeed : maxSpeed;
+  assertValidReference(referenceSpeed);
+  assertValidTolerance(tolerance);
+
+  const targetSpeed = DEFAULT_CONFIG.targetSpeed;
   const divergence = indicatedSpeed - referenceSpeed;
   const divergenceAbs = Math.abs(divergence);
   const lowerLimit = referenceSpeed - tolerance;
   const upperLimit = referenceSpeed + tolerance;
+  const targetError = indicatedSpeed - targetSpeed;
+  const targetErrorAbs = Math.abs(targetError);
+  const targetLowerLimit = targetSpeed - tolerance;
+  const targetUpperLimit = targetSpeed + tolerance;
   const classification = classifyDifference(divergenceAbs, tolerance);
   const displayedAsBoundary = divergenceAbs !== tolerance
     && Number(divergenceAbs.toFixed(3)) === tolerance;
   const roundingWarning = displayedAsBoundary
-    ? " Valor próximo do limite. Revisar leitura e marcações."
+    ? " Valor proximo do limite. Revisar leitura e marcacoes."
     : "";
 
   return {
     indicatedSpeed,
+    targetSpeed,
     reportSpeed: referenceSpeed,
-    // Alias mantido para abrir evidências gravadas por versões anteriores.
+    // Alias mantido para abrir evidencias gravadas por versoes anteriores.
     maxSpeed: referenceSpeed,
     tolerance,
     failCriterion: "gt",
     divergence,
     divergenceAbs,
+    reportDivergence: divergence,
+    reportDivergenceAbs: divergenceAbs,
+    primaryError: divergence,
+    primaryErrorAbs: divergenceAbs,
+    targetError,
+    targetErrorAbs,
+    targetLowerLimit,
+    targetUpperLimit,
     lowerLimit,
     upperLimit,
     outsideBy: Math.max(0, divergenceAbs - tolerance),
@@ -123,7 +157,7 @@ function occurrenceCandidate(kind, speed, limit, confirmation) {
       limit,
       delta: 0,
       status: OCCURRENCE_STATUS.CRITICAL,
-      label: "Atenção crítica — ponto exatamente no limite"
+      label: "Atencao critica - ponto exatamente no limite"
     };
   }
   if (!outside) return null;
@@ -134,7 +168,7 @@ function occurrenceCandidate(kind, speed, limit, confirmation) {
       limit,
       delta,
       status: OCCURRENCE_STATUS.SUSPECTED,
-      label: "Suspeita de pico/queda fora do limite — revisar"
+      label: "Suspeita de pico/queda fora do limite - revisar"
     };
   }
   return {
@@ -144,8 +178,8 @@ function occurrenceCandidate(kind, speed, limit, confirmation) {
     delta,
     status: OCCURRENCE_STATUS.POSSIBLE_FAILURE,
     label: kind === "peak"
-      ? "Possível reprovação — pico real acima do limite"
-      : "Possível reprovação — queda real abaixo do limite"
+      ? "Possivel reprovacao - pico real acima do limite"
+      : "Possivel reprovacao - queda real abaixo do limite"
   };
 }
 

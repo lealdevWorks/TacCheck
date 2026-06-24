@@ -14,11 +14,11 @@ import { ImageViewer } from "./viewer.js";
 
 const $ = (id) => document.getElementById(id);
 
-const APP_VERSION = "0.3.3";
+const APP_VERSION = "0.4.0";
 const HISTORY_STORAGE_KEY = "taccheck_analises";
 const THEME_COOKIE_NAME = "taccheck_theme";
 const THEME_VALUES = ["auto", "light", "dark"];
-const METHODOLOGY_TEXT = "A análise compara a velocidade frequente estimada no disco com a velocidade registrada no relatório. A escala é calibrada pelas linhas 40 e 60 km/h; a linha de 50 km/h é somente referência visual. Os limites objetivos são calculados pelo relatório ±4,000 km/h. Picos e quedas marcados permanecem suspeitos até confirmação visual de continuidade e coerência com o traço.";
+const METHODOLOGY_TEXT = "A analise compara a velocidade frequente estimada no disco com a velocidade registrada/maxima do ensaio, usando tolerancia de analise configuravel ate 4,000 km/h. A linha de 50 km/h permanece como referencia visual/calibracao. Picos e quedas marcados permanecem auxiliares ate confirmacao visual.";
 
 const COLORS = {
   line40: "#149447",
@@ -761,15 +761,16 @@ function calculate(options = {}) {
   const config = options instanceof Event ? {} : options;
   try {
     validateBeforeSpeedRequest();
-    const reportSpeed = config.reportSpeed ?? config.maxSpeed ?? getMaxSpeedForCalculation();
-    validateBeforeCalculation(reportSpeed);
+    const reportSpeed = config.reportSpeed ?? config.maxSpeed ?? getReportSpeedForCalculation();
+    const tolerance = getToleranceForCalculation();
+    validateBeforeCalculation(reportSpeed, tolerance);
     const analysis = calculateAnalysis({
       line40Points: state.marks.line40,
       line60Points: state.marks.line60,
       registerTopPoints: state.marks.registerTop,
       registerTopOffsetPx: state.readingOffsetPx,
       reportSpeed,
-      tolerance: 4,
+      tolerance,
       peakPoint: state.marks.peak[0] || null,
       dropPoint: state.marks.drop[0] || null,
       peakConfirmation: state.occurrenceConfirmation.peak,
@@ -799,25 +800,31 @@ function validateBeforeSpeedRequest() {
   if (state.marks.registerTop.length < 1) throw new Error("Marque a velocidade frequente na região constante.");
 }
 
-function getMaxSpeedForCalculation() {
+function getReportSpeedForCalculation() {
   const typedSpeed = parseNumber(els.maxSpeedInput.value, Number.NaN);
+  if (!els.maxSpeedInput.value.trim()) {
+    throw new Error("Informe a velocidade registrada/maxima do ensaio.");
+  }
   if (Number.isFinite(typedSpeed) && typedSpeed > 0) {
     return typedSpeed;
   }
-  return requestMaxSpeed();
+  throw new Error("Informe uma velocidade registrada/maxima do ensaio valida.");
 }
 
-function requestMaxSpeed() {
-  const currentValue = els.maxSpeedInput.value.trim();
-  const answer = window.prompt("Informe a velocidade registrada no relatório de ensaio (km/h):", currentValue);
-  if (answer === null) throw new Error("Cálculo cancelado. Informe a velocidade registrada no relatório.");
-  const maxSpeed = parseNumber(answer);
-  els.maxSpeedInput.value = formatNumber(maxSpeed);
-  return maxSpeed;
+function getToleranceForCalculation() {
+  const tolerance = parseNumber(els.toleranceInput.value, Number.NaN);
+  if (!Number.isFinite(tolerance) || tolerance <= 0) {
+    throw new Error("Informe uma tolerancia de analise valida.");
+  }
+  if (tolerance > 4) {
+    throw new Error("A tolerancia de analise nao pode ser maior que 4,000 km/h.");
+  }
+  return tolerance;
 }
 
-function validateBeforeCalculation(maxSpeed) {
-  if (maxSpeed <= 0) throw new Error("Informe a velocidade registrada no relatório.");
+function validateBeforeCalculation(reportSpeed, tolerance) {
+  if (!Number.isFinite(reportSpeed) || reportSpeed <= 0) throw new Error("Informe a velocidade registrada/maxima do ensaio.");
+  if (tolerance <= 0 || tolerance > 4) throw new Error("Informe uma tolerancia de analise entre 0,001 e 4,000 km/h.");
 }
 
 function getUiReadiness() {
@@ -1002,12 +1009,6 @@ function drawEvidence(ctx, viewport, analysis, rect = null, options = {}) {
     normalOffset: -18,
     lineOffset: 24,
     importance: "low"
-  }, labels);
-  drawSpeedLine(ctx, analysis.calibration, reportSpeed, COLORS.max, {
-    label: `RELATÓRIO ${formatNumber(reportSpeed)}`,
-    normalOffset: -34,
-    lineOffset: -44,
-    importance: "strong"
   }, labels);
   drawSpeedLine(ctx, analysis.calibration, lower, COLORS.limit, {
     dashed: true,
@@ -1493,7 +1494,7 @@ function updateModeText() {
     peak: ["Pico superior opcional", "Marque somente se houver suspeita real de pico fora do limite superior."],
     drop: ["Queda inferior opcional", "Marque somente se houver suspeita real de queda fora do limite inferior."]
   };
-  const [title, text] = texts[state.mode] || ["Como marcar", "Fluxo principal: imagem, escala 40/60, velocidade frequente e valor do relatório."];
+  const [title, text] = texts[state.mode] || ["Como marcar", "Fluxo principal: imagem, escala 40/60, velocidade frequente e tolerancia de analise."];
   els.modeTitle.textContent = title;
   els.modeText.textContent = text;
 }
@@ -1576,8 +1577,9 @@ function readinessMessage(reason) {
     "aguardando imagem": "Carregue uma imagem para iniciar a analise.",
     "aguardando escala": "Marque 2 pontos na linha 40 e 2 pontos na linha 60.",
     "aguardando velocidade frequente": "Marque a velocidade frequente da região constante.",
-    "aguardando velocidade maxima": "Informe a velocidade registrada no relatório.",
-    "aguardando tolerancia": "Informe uma tolerancia valida."
+    "aguardando velocidade maxima": "Informe a velocidade registrada/maxima do ensaio.",
+    "velocidade registrada invalida": "Corrija a velocidade registrada/maxima do ensaio.",
+    "aguardando tolerancia": "Informe uma tolerancia de analise valida ate 4,000 km/h."
   }[reason] || "Complete os dados para calcular.";
 }
 
@@ -1616,7 +1618,7 @@ function updateOccurrenceResult(occurrences) {
   els.occurrenceReason.textContent = suspected
     ? "Suspeita de pico/queda fora do limite. Revise visualmente."
     : possible
-      ? "Ponto real confirmado fora do limite dinâmico do relatório."
+      ? "Ponto real confirmado fora do limite da conferencia."
       : critical
         ? "Ponto exatamente no limite. Revisar a leitura."
         : "Picos e quedas são opcionais e não bloqueiam o cálculo principal.";
@@ -1639,10 +1641,13 @@ function buildSnapshot(analysis) {
     tolerancia: result.tolerance,
     criterio: "gt",
     criterio_reprovacao: "gt",
+    padrao_velocidade_ensaio: result.targetSpeed,
     velocidade_frequente_disco: result.indicatedSpeed,
     velocidade_indicada_disco: result.indicatedSpeed,
-    diferenca_absoluta: result.divergenceAbs,
-    divergencia: result.divergence,
+    erro_padrao_50: result.primaryError,
+    erro_padrao_50_absoluto: result.primaryErrorAbs,
+    diferenca_absoluta: result.reportDivergenceAbs,
+    divergencia: result.reportDivergence,
     limite_inferior: result.lowerLimit,
     limite_superior: result.upperLimit,
     resultado: result.result,
@@ -1833,7 +1838,8 @@ function buildAnalysisFromRecord(record, points) {
 }
 
 function updateResultFromRecord(record) {
-  els.maxSpeedOutput.textContent = `${formatMaybeNumber(record.velocidade_registrada_relatorio ?? record.velocidade_maxima_ensaio)} km/h`;
+  const reportSpeed = record.velocidade_registrada_relatorio ?? record.velocidade_maxima_ensaio;
+  els.maxSpeedOutput.textContent = `${formatMaybeNumber(reportSpeed)} km/h`;
   els.indicatedSpeedOutput.textContent = `${formatMaybeNumber(record.velocidade_indicada_disco)} km/h`;
   els.divergenceOutput.textContent = `${formatMaybeNumber(record.diferenca_absoluta ?? Math.abs(record.divergencia))} km/h`;
   els.lowerLimitOutput.textContent = `${formatMaybeNumber(record.limite_inferior)} km/h`;
@@ -1951,11 +1957,12 @@ function drawResultBox(ctx, analysis) {
   ctx.fillText("TacCheck - Analise de velocidade", x + 14, y + 28);
   ctx.font = "14px Segoe UI";
   const rows = [
-    `Vel. registrada no relatorio: ${formatNumber(result.reportSpeed)} km/h`,
+    `Vel. registrada/maxima do ensaio: ${formatNumber(result.reportSpeed)} km/h`,
     `Vel. frequente no disco: ${formatNumber(result.indicatedSpeed)} km/h`,
     `Diferenca calculada: ${formatNumber(result.divergenceAbs)} km/h`,
-    `Tolerancia: +/-${formatNumber(result.tolerance)} km/h`,
+    `Tolerancia de analise: +/-${formatNumber(result.tolerance)} km/h`,
     `Limites: ${formatNumber(result.lowerLimit)} a ${formatNumber(result.upperLimit)} km/h`,
+    `Referencia 50 km/h: erro ${formatNumber(result.targetErrorAbs)} km/h`,
     `Resultado: ${result.result}`,
     `Motivo: ${result.reason}`
   ];

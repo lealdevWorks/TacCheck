@@ -15,7 +15,7 @@ export function getCalculationReadiness({
   const parsedMaxSpeed = parseNumber(maxSpeed, Number.NaN);
   const parsedTolerance = parseNumber(tolerance, Number.NaN);
   const hasMaxSpeed = !maxSpeedRequired || (Number.isFinite(parsedMaxSpeed) && parsedMaxSpeed > 0);
-  const hasTolerance = Number.isFinite(parsedTolerance) && parsedTolerance >= 0;
+  const hasTolerance = Number.isFinite(parsedTolerance) && parsedTolerance > 0 && parsedTolerance <= 4;
   const canCalculate = hasImage && hasScale && hasRegister && hasMaxSpeed && hasTolerance;
 
   let reason = "pronto para calcular";

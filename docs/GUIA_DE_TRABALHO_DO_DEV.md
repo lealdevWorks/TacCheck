@@ -10,16 +10,18 @@ O app compara:
 
 ```text
 velocidade_frequente_disco
-velocidade_registrada_relatorio
+velocidade_registrada_maxima_ensaio
 ```
 
-A regra principal atual usa limite dinamico:
+A regra principal atual usa a velocidade registrada/maxima do ensaio como referencia, com tolerancia de analise ajustavel e limitada a 4,000 km/h:
 
 ```text
-limite_inferior = relatorio - 4,000 km/h
-limite_superior = relatorio + 4,000 km/h
-diferenca = abs(frequente - relatorio)
+limite_inferior = velocidade_registrada_maxima_ensaio - tolerancia_analise
+limite_superior = velocidade_registrada_maxima_ensaio + tolerancia_analise
+diferenca = abs(frequente - velocidade_registrada_maxima_ensaio)
 ```
+
+A linha 50 km/h permanece como referencia visual/calibracao e pode ser usada em bloco secundario, mas nao substitui a conferencia principal.
 
 Picos e quedas sao analise complementar. Eles nao bloqueiam o calculo principal.
 
@@ -175,6 +177,7 @@ Usamos uma estrategia simples baseada em SemVer enquanto o projeto esta em `0.x`
 - `0.3.1`: correcoes de fluxo visual, PWA/icone instalado e ajustes patch.
 - `0.3.2`: rotulos fixos 40/60/50 no canvas e evidencias dessa correcao visual.
 - `0.3.3`: overlays de relatorio, limites e resultado aparecem somente apos `Calcular`.
+- `0.4.0`: regra principal contra velocidade registrada/maxima do ensaio com tolerancia ajustavel ate 4,000.
 
 Quando mudar a versao, atualizar todos estes pontos:
 
@@ -189,9 +192,9 @@ Quando mudar a versao, atualizar todos estes pontos:
 Exemplos:
 
 ```html
-<link rel="stylesheet" href="./src/styles/main.css?v=0.3.3">
-<script type="module" src="./src/ui/app.js?v=0.3.3"></script>
-<link rel="manifest" href="./assets/brand/site.webmanifest?v=0.3.3">
+<link rel="stylesheet" href="./src/styles/main.css?v=0.4.0">
+<script type="module" src="./src/ui/app.js?v=0.4.0"></script>
+<link rel="manifest" href="./assets/brand/site.webmanifest?v=0.4.0">
 ```
 
 ## Commits

@@ -2,13 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { getCalculationReadiness } from "../src/core/readiness.js";
 
-test("libera calculo com imagem, escala, frequente, velocidade e tolerancia validos", () => {
+test("libera calculo com imagem, escala, frequente, velocidade registrada e tolerancia validos", () => {
   const readiness = getCalculationReadiness({
     imageLoaded: true,
     line40Points: [{}, {}],
     line60Points: [{}, {}],
     registerTopPoints: [{}, {}, {}],
-    maxSpeed: 51,
+    maxSpeed: 52.101,
     tolerance: 4
   });
 
@@ -58,7 +58,7 @@ test("nao exige pico ou queda para liberar calculo principal", () => {
   assert.equal(readiness.reason, "pronto para calcular");
 });
 
-test("bloqueia calculo sem velocidade maxima valida", () => {
+test("bloqueia calculo sem velocidade registrada/maxima do ensaio", () => {
   const readiness = getCalculationReadiness({
     imageLoaded: true,
     line40Points: [{}, {}],
@@ -70,4 +70,18 @@ test("bloqueia calculo sem velocidade maxima valida", () => {
 
   assert.equal(readiness.canCalculate, false);
   assert.equal(readiness.reason, "aguardando velocidade maxima");
+});
+
+test("bloqueia tolerancia acima de 4 km/h", () => {
+  const readiness = getCalculationReadiness({
+    imageLoaded: true,
+    line40Points: [{}, {}],
+    line60Points: [{}, {}],
+    registerTopPoints: [{}],
+    maxSpeed: 52.101,
+    tolerance: "4,001"
+  });
+
+  assert.equal(readiness.canCalculate, false);
+  assert.equal(readiness.reason, "aguardando tolerancia");
 });
