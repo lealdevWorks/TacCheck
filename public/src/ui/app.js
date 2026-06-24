@@ -673,8 +673,8 @@ function startReferenceMark(mode) {
 }
 
 function showCalculated50Reference() {
-  if (state.marks.line40.length < 2 || state.marks.line60.length < 2) {
-    setStatus("Marque 40 e 60 para mostrar a referência 50 km/h calculada.");
+  if (!state.lastAnalysis) {
+    setStatus("Calcule o resultado para mostrar a referência 50 km/h.");
     return;
   }
 
@@ -933,13 +933,7 @@ function drawScaleReferences(ctx, rect, labels) {
         lineOffset: 88,
         importance: "low"
       }, labels);
-      drawSpeedLine(ctx, calibration, 50, COLORS.line50, {
-        label: "",
-        normalOffset: -18,
-        lineOffset: 22,
-        importance: "low"
-      }, labels);
-      drawCalibrationLabels(ctx, calibration, rect);
+      drawCalibrationLabels(ctx, calibration, rect, { include50: false });
       return;
     } catch {
       // Se a calibracao ainda estiver instavel, mantem ao menos os rotulos das marcas.
@@ -1043,7 +1037,8 @@ function drawEvidence(ctx, viewport, analysis, rect = null, options = {}) {
   drawCalibrationLabels(ctx, analysis.calibration, rect);
 }
 
-function drawCalibrationLabels(ctx, calibration, rect = null) {
+function drawCalibrationLabels(ctx, calibration, rect = null, options = {}) {
+  const include50 = options.include50 !== false;
   const labels = createCanvasLabelLayout(rect);
   drawSpeedLabel(ctx, calibration, 40, COLORS.line40, "40 km/h", {
     normalOffset: 18,
@@ -1053,10 +1048,12 @@ function drawCalibrationLabels(ctx, calibration, rect = null) {
     normalOffset: -18,
     lineOffset: 88
   }, labels);
-  drawSpeedLabel(ctx, calibration, 50, COLORS.line50, "50 km/h", {
-    normalOffset: -16,
-    lineOffset: 22
-  }, labels);
+  if (include50) {
+    drawSpeedLabel(ctx, calibration, 50, COLORS.line50, "50 km/h", {
+      normalOffset: -16,
+      lineOffset: 22
+    }, labels);
+  }
 }
 
 function drawSpeedLabel(ctx, calibration, speed, color, label, options = {}, labels = null) {
@@ -1439,10 +1436,10 @@ function updateUi() {
     : "pendente";
   els.mark40Button.textContent = state.marks.line40.length >= 2 ? "Remarcar 40" : "Marcar 40";
   els.mark60Button.textContent = state.marks.line60.length >= 2 ? "Remarcar 60" : "Marcar 60";
-  els.mark50Button.disabled = !(state.marks.line40.length >= 2 && state.marks.line60.length >= 2);
-  els.mark50Button.textContent = state.marks.line40.length >= 2 && state.marks.line60.length >= 2
+  els.mark50Button.disabled = !state.lastAnalysis;
+  els.mark50Button.textContent = state.lastAnalysis
     ? "50 calculado"
-    : "50 após escala";
+    : "50 após cálculo";
   els.markPeakButton.textContent = state.marks.peak.length ? "Remarcar pico superior" : "Marcar pico superior";
   els.markDropButton.textContent = state.marks.drop.length ? "Remarcar queda inferior" : "Marcar queda inferior";
   els.resultStepStatus.textContent = state.lastAnalysis || state.lastSnapshot ? "calculado" : "aguardando";
