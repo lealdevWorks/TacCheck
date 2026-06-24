@@ -171,3 +171,29 @@ evidencias/rotulos_40_60_pan_1366x768.png
 evidencias/imagem_marcada_rotulos_40_60_1366x768.png
 evidencias/rotulos_40_60_sem_scroll_1366x768.png
 ```
+
+## 2026-06-23 - Overlay de resultado somente apos Calcular
+
+Solicitacao:
+
+- antes de clicar em `Calcular`, manter o canvas limpo;
+- mostrar antes do calculo apenas imagem, escala 40/60, frequente e controles de marcacao;
+- nao renderizar relatorio, limite inferior, limite superior, diferenca, resultado, alertas ou picos/quedas antes da confirmacao;
+- ao alterar campo de calculo depois de um resultado, exigir novo calculo e remover overlays de resultado;
+- ao limpar a analise, voltar ao estado limpo.
+
+Resultado:
+
+- versao `0.3.3`;
+- alteracao de relatorio/tolerancia invalida `lastAnalysis` e `lastSnapshot`;
+- canvas volta ao estado pre-calculo ate nova acao em `Calcular`;
+- demo `clear=1` para validar limpeza apos analise;
+- regra matematica preservada.
+
+Evidencias:
+
+```text
+evidencias/overlay_limpo_antes_calculo_1366x768.png
+evidencias/overlay_pos_calculo_1366x768.png
+evidencias/overlay_limpo_apos_limpar_1366x768.png
+```

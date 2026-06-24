@@ -14,7 +14,7 @@ import { ImageViewer } from "./viewer.js";
 
 const $ = (id) => document.getElementById(id);
 
-const APP_VERSION = "0.3.2";
+const APP_VERSION = "0.3.3";
 const HISTORY_STORAGE_KEY = "taccheck_analises";
 const THEME_COOKIE_NAME = "taccheck_theme";
 const THEME_VALUES = ["auto", "light", "dark"];
@@ -386,6 +386,15 @@ function handleDocumentKeydown(event) {
 
 function clearCalculationError() {
   state.lastError = null;
+  if (state.lastAnalysis || state.lastSnapshot) {
+    state.lastAnalysis = null;
+    state.lastSnapshot = null;
+    resetResult();
+    setStatus("Dados alterados. Clique em Calcular para exibir relatorio, limites e resultado.");
+    updateUi();
+    viewer.draw();
+    return;
+  }
   updateUi();
 }
 
@@ -2102,6 +2111,12 @@ function loadDemo(scenario = "default", saveAfterCalculation = false) {
     }
     calculate({ reportSpeed: selected.report });
     applyDemoView(params.get("view"));
+    if (params.get("clear") === "1") {
+      clearMarks(false);
+      setStatus("Analise limpa. Tela voltou ao estado pre-calculo.");
+      viewer.draw();
+      return;
+    }
     if (params.get("marked") === "1") {
       requestAnimationFrame(showMarkedDemoPreview);
     }

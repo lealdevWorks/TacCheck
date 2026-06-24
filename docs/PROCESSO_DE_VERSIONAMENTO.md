@@ -86,6 +86,7 @@ Exemplo:
 0.3.0 -> regra objetiva/dinamica de velocidade
 0.3.1 -> correcoes visuais/PWA/fluxo
 0.3.2 -> rotulos fixos 40/60/50 no canvas
+0.3.3 -> overlays de resultado somente apos Calcular
 ```
 
 ## Publicacao

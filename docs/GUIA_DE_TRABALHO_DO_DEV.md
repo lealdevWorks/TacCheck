@@ -174,6 +174,7 @@ Usamos uma estrategia simples baseada em SemVer enquanto o projeto esta em `0.x`
 - `0.3.0`: mudanca de regra objetiva/dinamica de velocidade.
 - `0.3.1`: correcoes de fluxo visual, PWA/icone instalado e ajustes patch.
 - `0.3.2`: rotulos fixos 40/60/50 no canvas e evidencias dessa correcao visual.
+- `0.3.3`: overlays de relatorio, limites e resultado aparecem somente apos `Calcular`.
 
 Quando mudar a versao, atualizar todos estes pontos:
 
@@ -188,9 +189,9 @@ Quando mudar a versao, atualizar todos estes pontos:
 Exemplos:
 
 ```html
-<link rel="stylesheet" href="./src/styles/main.css?v=0.3.2">
-<script type="module" src="./src/ui/app.js?v=0.3.2"></script>
-<link rel="manifest" href="./assets/brand/site.webmanifest?v=0.3.2">
+<link rel="stylesheet" href="./src/styles/main.css?v=0.3.3">
+<script type="module" src="./src/ui/app.js?v=0.3.3"></script>
+<link rel="manifest" href="./assets/brand/site.webmanifest?v=0.3.3">
 ```
 
 ## Commits
@@ -211,6 +212,7 @@ Commits recentes importantes:
 6f7aa30 fix: aplicar regra dinamica de velocidade
 8124a22 fix: simplificar fluxo visual de picos
 e878d74 fix: atualizar icone do app instalado
+1003139 fix: mostrar 50 somente apos calculo
 ```
 
 Antes de commitar, revisar staging:
